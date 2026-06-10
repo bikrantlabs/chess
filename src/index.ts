@@ -24,6 +24,12 @@ app.get("/", (req, res) => {
     gameId: 123,
   });
 });
+app.get("/game", (req, res) => {
+  res.render("game.ejs", {
+    username: "Bikrant",
+    gameId: 123,
+  });
+});
 
 app.get("/auth/login", (req, res) => {
   res.sendFile(join(__dirname, "../views/auth/login.html"));
