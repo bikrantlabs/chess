@@ -3,26 +3,25 @@ import { GameService } from "../services/game.service.js";
 
 const game = new GameService();
 
-export function newGame(req: Request, res: Response) {
+export async function newGame(req: Request, res: Response) {
   const mode = req.body.mode ?? "ai";
-  const result = game.newGame(mode);
+  const color = req.body.color as "w" | "b" | undefined;
+  const userId = req.session.userId;
+
+  const result = await game.newGame(mode, userId, color);
   res.json({ ok: true, ...result });
 }
 
-export function move(req: Request, res: Response) {
+export async function move(req: Request, res: Response) {
   const { from, to, promotion } = req.body;
-  const move = game.applyMove(from, to, promotion ?? "q");
-  if (!move) {
+  const result = await game.playerMove(from, to, promotion ?? "q");
+
+  if (!result.ok) {
     res.json({ ok: false });
     return;
   }
-  res.json({
-    ok: true,
-    fen: game.getFen(),
-    move,
-    gameOver: game.isGameOver(),
-    turn: game.getTurn(),
-  });
+
+  res.json(result);
 }
 
 export function legalMoves(req: Request, res: Response) {
@@ -35,6 +34,20 @@ export function legalMoves(req: Request, res: Response) {
   });
 }
 
-export function position(req: Request, res: Response) {
+export function position(_req: Request, res: Response) {
   res.json({ fen: game.getFen() });
+}
+
+export async function resign(req: Request, res: Response) {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.json({ ok: false, error: "Not authenticated" });
+    return;
+  }
+  const result = await game.resign(userId);
+  res.json(result);
+}
+
+export function status(_req: Request, res: Response) {
+  res.json(game.getStatus());
 }
