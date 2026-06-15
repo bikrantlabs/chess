@@ -1,0 +1,52 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  gamesAsWhite Game[]   @relation("WhitePlayer")
+  gamesAsBlack Game[]   @relation("BlackPlayer")
+}
+
+model Game {
+  id           Int      @id @default(autoincrement())
+  whiteUserId  Int?
+  blackUserId  Int?
+  whiteUser    User?    @relation("WhitePlayer", fields: [whiteUserId], references: [id])
+  blackUser    User?    @relation("BlackPlayer", fields: [blackUserId], references: [id])
+  mode         String   @default("ai")
+  status       String   @default("active")
+  result       String?
+  fen          String   @default("start")
+  pgn          String   @default("")
+  timeControl  String?
+  startedAt    DateTime @default(now())
+  endedAt      DateTime?
+
+  moves Move[]
+}
+
+model Move {
+  id         Int      @id @default(autoincrement())
+  gameId     Int
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  moveNumber Int
+  fromSq     String
+  toSq       String
+  promotion  String?
+  san        String
+  fen        String
+  clockWhite Float?
+  clockBlack Float?
+  createdAt  DateTime @default(now())
+}
