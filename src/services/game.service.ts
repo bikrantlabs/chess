@@ -141,6 +141,10 @@ export class GameService {
     return { ok: true, result };
   }
 
+  drawOffer() {
+    return { ok: true, message: "Draw offer sent" };
+  }
+
   getStatus() {
     const result = this.getGameOverResult();
     return {
