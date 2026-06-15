@@ -8,10 +8,12 @@ import appRouter from "./routes/app.routes.js";
 import apiRouter from "./routes/api.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import { setupSession } from "./lib/session.js";
+import { setIO } from "./lib/events.js";
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer);
+export const io = new Server(httpServer);
+setIO(io);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

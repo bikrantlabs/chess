@@ -22,8 +22,24 @@ interface PlayerMoveResponse {
   move?: MoveResult;
   gameOver?: boolean;
   result?: string | null;
+  gameOverReason?: string | null;
   turn?: "w" | "b";
   engineMove?: MoveResult | null;
+  clocks?: { white: number; black: number } | null;
+}
+
+interface TimeConfig {
+  initial: number;
+  increment: number;
+}
+
+function parseTimeControl(tc: string): TimeConfig | null {
+  const m = tc.match(/^(\d+)(?:\+(\d+))?$/);
+  if (!m) return null;
+  return {
+    initial: parseInt(m[1]!, 10) * 1000,
+    increment: parseInt(m[2] ?? "0", 10) * 1000,
+  };
 }
 
 export class GameService {
@@ -32,11 +48,27 @@ export class GameService {
   private mode: GameMode = "ai";
   private engine: EngineService | null = null;
   private engineReady = false;
+  private timeConfig: TimeConfig | null = null;
+  private whiteClock: number = 0;
+  private blackClock: number = 0;
+  private lastMoveTime: number = 0;
 
-  async newGame(mode: GameMode = "ai", userId?: number, color?: "w" | "b") {
+  async newGame(
+    mode: GameMode = "ai",
+    userId?: number,
+    color?: "w" | "b",
+    timeControl?: string,
+  ) {
     this.chess.reset();
     this.mode = mode;
     this.gameId = null;
+    this.timeConfig = timeControl ? parseTimeControl(timeControl) : null;
+    this.lastMoveTime = Date.now();
+
+    if (this.timeConfig) {
+      this.whiteClock = this.timeConfig.initial;
+      this.blackClock = this.timeConfig.initial;
+    }
 
     if (mode === "ai") {
       if (!this.engine) {
@@ -46,12 +78,7 @@ export class GameService {
       this.engineReady = true;
 
       if (color === "b") {
-        const best = await this.engine.go(10);
-        if (best) {
-          const from = best.slice(0, 2);
-          const to = best.slice(2, 4);
-          this.chess.move({ from, to });
-        }
+        await this.doEngineMove();
       }
     }
 
@@ -60,6 +87,7 @@ export class GameService {
       const gameData: Record<string, unknown> = {
         mode,
         fen: this.chess.fen(),
+        timeControl: timeControl ?? null,
       };
       if (userColor === "w") gameData.whiteUserId = userId;
       if (userColor === "b") gameData.blackUserId = userId;
@@ -72,6 +100,7 @@ export class GameService {
       fen: this.chess.fen(),
       turn: this.chess.turn(),
       gameOver: this.chess.isGameOver(),
+      clocks: this.getClocks(),
     };
   }
 
@@ -80,6 +109,8 @@ export class GameService {
     to: string,
     promotion = "q",
   ): Promise<PlayerMoveResponse> {
+    this.deductTime();
+
     let move;
     try {
       move = this.chess.move({ from, to, promotion });
@@ -88,32 +119,54 @@ export class GameService {
     }
     if (!move) return { ok: false };
 
+    this.addIncrement();
     await this.saveMove(move);
 
-    const result = this.getGameOverResult();
-    if (result) {
-      await this.endGame(result);
+    const flagResult = this.checkFlagFall();
+    if (flagResult) {
+      await this.endGame(flagResult.result);
       return {
         ok: true,
         fen: this.chess.fen(),
         move: this.formatMove(move),
         gameOver: true,
-        result,
+        result: flagResult.result,
+        gameOverReason: "timeout",
         turn: this.chess.turn(),
         engineMove: null,
+        clocks: this.getClocks(),
+      };
+    }
+
+    const over = this.getGameOverResult();
+    if (over) {
+      await this.endGame(over.result);
+      return {
+        ok: true,
+        fen: this.chess.fen(),
+        move: this.formatMove(move),
+        gameOver: true,
+        result: over.result,
+        gameOverReason: over.reason,
+        turn: this.chess.turn(),
+        engineMove: null,
+        clocks: this.getClocks(),
       };
     }
 
     if (this.mode === "ai" && this.engineReady && this.chess.turn() === "b") {
       const engineMoveResult = await this.doEngineMove();
+      const afterEngine = this.getGameOverResult();
       return {
         ok: true,
         fen: this.chess.fen(),
         move: this.formatMove(move),
-        gameOver: !!this.getGameOverResult(),
-        result: this.getGameOverResult(),
+        gameOver: !!afterEngine,
+        result: afterEngine?.result ?? null,
+        gameOverReason: afterEngine?.reason ?? null,
         turn: this.chess.turn(),
         engineMove: engineMoveResult,
+        clocks: this.getClocks(),
       };
     }
 
@@ -123,8 +176,10 @@ export class GameService {
       move: this.formatMove(move),
       gameOver: false,
       result: null,
+      gameOverReason: null,
       turn: this.chess.turn(),
       engineMove: null,
+      clocks: this.getClocks(),
     };
   }
 
@@ -146,13 +201,15 @@ export class GameService {
   }
 
   getStatus() {
-    const result = this.getGameOverResult();
+    const over = this.getGameOverResult();
     return {
       fen: this.chess.fen(),
       turn: this.chess.turn(),
       gameOver: this.chess.isGameOver(),
-      result,
+      result: over?.result ?? null,
+      gameOverReason: over?.reason ?? null,
       history: this.chess.history({ verbose: true }),
+      clocks: this.getClocks(),
     };
   }
 
@@ -192,11 +249,25 @@ export class GameService {
     this.gameId = id;
   }
 
+  getClocks() {
+    if (!this.timeConfig) return null;
+    return { white: this.whiteClock, black: this.blackClock };
+  }
+
   private async doEngineMove(): Promise<MoveResult | null> {
     if (!this.engine || !this.engineReady) return null;
 
+    this.deductTime();
     this.engine.setPosition(this.chess.fen());
-    const best = await this.engine.go(10);
+
+    let best: string;
+    if (this.timeConfig) {
+      best = await this.engine.goTime(
+        Math.min(this.chess.turn() === "w" ? this.whiteClock : this.blackClock, 5000),
+      );
+    } else {
+      best = await this.engine.go(10);
+    }
 
     if (!best) return null;
     const from = best.slice(0, 2);
@@ -210,14 +281,50 @@ export class GameService {
     }
     if (!move) return null;
 
+    this.addIncrement();
     await this.saveMove(move);
 
-    const result = this.getGameOverResult();
-    if (result) {
-      await this.endGame(result);
+    const flagResult = this.checkFlagFall();
+    if (flagResult) {
+      await this.endGame(flagResult.result);
+      return this.formatMove(move);
+    }
+
+    const over = this.getGameOverResult();
+    if (over) {
+      await this.endGame(over.result);
     }
 
     return this.formatMove(move);
+  }
+
+  private deductTime() {
+    if (!this.timeConfig) return;
+    const elapsed = Date.now() - this.lastMoveTime;
+    const turn = this.chess.turn();
+    if (turn === "w") {
+      this.whiteClock = Math.max(0, this.whiteClock - elapsed);
+    } else {
+      this.blackClock = Math.max(0, this.blackClock - elapsed);
+    }
+    this.lastMoveTime = Date.now();
+  }
+
+  private addIncrement() {
+    if (!this.timeConfig) return;
+    const turn = this.chess.turn();
+    if (turn === "w") {
+      this.whiteClock += this.timeConfig.increment;
+    } else {
+      this.blackClock += this.timeConfig.increment;
+    }
+  }
+
+  private checkFlagFall(): { result: string } | null {
+    if (!this.timeConfig) return null;
+    if (this.whiteClock <= 0) return { result: "0-1" };
+    if (this.blackClock <= 0) return { result: "1-0" };
+    return null;
   }
 
   private async saveMove(move: { san: string }) {
@@ -230,6 +337,8 @@ export class GameService {
         toSq: "",
         san: move.san,
         fen: this.chess.fen(),
+        clockWhite: this.whiteClock,
+        clockBlack: this.blackClock,
       },
     });
     await prisma.game.update({
@@ -246,13 +355,21 @@ export class GameService {
     });
   }
 
-  private getGameOverResult(): string | null {
+  private getGameOverResult(): { result: string; reason: string } | null {
     if (!this.chess.isGameOver()) return null;
-
     if (this.chess.isCheckmate()) {
-      return this.chess.turn() === "w" ? "0-1" : "1-0";
+      const result = this.chess.turn() === "w" ? "0-1" : "1-0";
+      return { result, reason: "checkmate" };
     }
-    return "1/2-1/2";
+    if (this.chess.isStalemate()) return { result: "1/2-1/2", reason: "stalemate" };
+    if (this.chess.isDraw()) return { result: "1/2-1/2", reason: "draw" };
+    if (this.chess.isThreefoldRepetition()) {
+      return { result: "1/2-1/2", reason: "threefold-repetition" };
+    }
+    if (this.chess.isInsufficientMaterial()) {
+      return { result: "1/2-1/2", reason: "insufficient-material" };
+    }
+    return { result: "1/2-1/2", reason: "draw" };
   }
 
   private formatMove(mv: {

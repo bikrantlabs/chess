@@ -1,14 +1,16 @@
 import { Request, Response } from "express";
 import { GameService } from "../services/game.service.js";
+import { getIO } from "../lib/events.js";
 
 const game = new GameService();
 
 export async function newGame(req: Request, res: Response) {
   const mode = req.body.mode ?? "ai";
   const color = req.body.color as "w" | "b" | undefined;
+  const timeControl = req.body.timeControl as string | undefined;
   const userId = req.session.userId;
 
-  const result = await game.newGame(mode, userId, color);
+  const result = await game.newGame(mode, userId, color, timeControl);
   res.json({ ok: true, ...result });
 }
 
@@ -19,6 +21,14 @@ export async function move(req: Request, res: Response) {
   if (!result.ok) {
     res.json({ ok: false });
     return;
+  }
+
+  if (result.gameOver) {
+    getIO().emit("game-over", {
+      result: result.result,
+      reason: result.gameOverReason,
+      fen: result.fen,
+    });
   }
 
   res.json(result);
@@ -45,6 +55,14 @@ export async function resign(req: Request, res: Response) {
     return;
   }
   const result = await game.resign(userId);
+
+  if (result.ok) {
+    getIO().emit("game-over", {
+      result: result.result,
+      reason: "resignation",
+    });
+  }
+
   res.json(result);
 }
 
