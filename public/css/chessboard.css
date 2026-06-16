@@ -5,7 +5,6 @@
 
 .cb-board {
   position: relative;
-  border: 2px solid #404040;
   box-sizing: content-box;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -42,6 +41,7 @@
   display: block;
   position: relative;
   z-index: 2;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
 }
 
 .cb-piece-dragging {
@@ -53,8 +53,8 @@
   position: absolute;
   cursor: default;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 12px;
-  font-weight: bold;
+  font-size: 11px;
+  font-weight: 700;
   pointer-events: none;
   z-index: 1;
   line-height: 1;
@@ -79,7 +79,7 @@
 }
 
 .cb-highlight-selected {
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 0, 0.7);
+  box-shadow: inset 0 0 0 3px rgba(100, 160, 50, 0.7);
 }
 
 .cb-highlight-legal {
@@ -93,8 +93,8 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 30%;
-  height: 30%;
+  width: 28%;
+  height: 28%;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.2);
   pointer-events: none;
@@ -102,31 +102,33 @@
 }
 
 .cb-highlight-legal-capture {
-  box-shadow: inset 0 0 0 3px rgba(229, 38, 38, 0.5);
+  box-shadow: inset 0 0 0 3px rgba(200, 40, 40, 0.6);
   cursor: pointer;
 }
 
 .cb-highlight-last-move {
-  background: rgba(155, 199, 0, 0.41);
+  background: rgba(155, 199, 0, 0.35);
 }
 
 .cb-promotion-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 500;
+  backdrop-filter: blur(2px);
 }
 
 .cb-promotion-dialog {
   display: flex;
   gap: 4px;
-  background: #fff;
+  background: #2d2a27;
   padding: 8px;
-  border-radius: 4px;
-  box-shadow: 0 0 16px rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  border: 1px solid #4a4642;
 }
 
 .cb-promotion-piece {
@@ -134,11 +136,11 @@
   height: 64px;
   cursor: pointer;
   border: 2px solid transparent;
-  border-radius: 4px;
-  transition: border-color 0.15s;
+  border-radius: 6px;
+  transition: border-color 0.15s, background 0.15s;
 }
 
 .cb-promotion-piece:hover {
-  border-color: #4a90d9;
-  background: #e8f0fe;
+  border-color: #81b64c;
+  background: #3a3632;
 }

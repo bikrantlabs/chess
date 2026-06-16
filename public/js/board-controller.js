@@ -2,6 +2,53 @@ let board = null;
 let isProcessingMove = false;
 let gameOver = false;
 
+function showSetupPanel() {
+  document.getElementById("setup-panel")?.style.removeProperty("display");
+  document.getElementById("game-panels")?.style.setProperty("display", "none");
+  document.getElementById("resign-btn")?.setAttribute("disabled", "true");
+  document.getElementById("draw-btn")?.setAttribute("disabled", "true");
+}
+
+function showGamePanels() {
+  document.getElementById("setup-panel")?.style.setProperty("display", "none");
+  document.getElementById("game-panels")?.style.removeProperty("display");
+}
+
+function setupButtonGroups() {
+  document.querySelectorAll(".btn-group").forEach((group) => {
+    group.addEventListener("click", (e) => {
+      const btn = e.target.closest(".group-btn");
+      if (!btn) return;
+      group.querySelectorAll(".group-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      if (group.id === "pg-mode") {
+        const section = document.getElementById("pg-color-section");
+        if (section) section.style.display = btn.dataset.value === "ai" ? "" : "none";
+      }
+    });
+  });
+
+  document.querySelectorAll(".time-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".time-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const wrap = document.getElementById("pg-custom-wrap");
+      if (wrap) wrap.style.display = btn.dataset.value === "custom" ? "" : "none";
+    });
+  });
+
+  document.getElementById("pg-start")?.addEventListener("click", async () => {
+    const mode = document.querySelector("#pg-mode .group-btn.active")?.dataset.value ?? "ai";
+    const color = document.querySelector("#pg-color .group-btn.active")?.dataset.value ?? "w";
+    let timeControl = document.querySelector("#pg-time .time-btn.active")?.dataset.value ?? "";
+    if (timeControl === "custom") {
+      timeControl = document.getElementById("pg-custom-time")?.value ?? "600+5";
+    }
+    showGamePanels();
+    if (window.startNewGame) await window.startNewGame(mode, color, timeControl);
+  });
+}
+
 async function initBoard() {
   board = new Chessboard("board", {
     draggable: true,
@@ -71,7 +118,8 @@ async function initBoard() {
   });
 
   GameUI.init();
-  document.getElementById("new-game-btn")?.addEventListener("click", () => GameUI.showNewGameDialog());
+  setupButtonGroups();
+  document.getElementById("new-game-btn")?.addEventListener("click", showSetupPanel);
   document.getElementById("resign-btn")?.addEventListener("click", onResign);
   document.getElementById("draw-btn")?.addEventListener("click", onDrawOffer);
 }
@@ -83,7 +131,10 @@ window.startNewGame = async (mode, color, timeControl) => {
     body: JSON.stringify({ mode, color, timeControl: timeControl || undefined }),
   });
   const data = await res.json();
-  if (!data.ok) return;
+  if (!data.ok) {
+    showSetupPanel();
+    return;
+  }
   gameOver = false;
   isProcessingMove = false;
   board.position(data.fen);

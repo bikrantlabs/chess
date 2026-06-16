@@ -66,7 +66,11 @@ const GameUI = {
 
   updateStatus(data) {
     const el = document.getElementById("game-status");
+    const icon = document.getElementById("status-icon");
     if (!el) return;
+
+    document.getElementById("player-top")?.classList.remove("active");
+    document.getElementById("player-bottom")?.classList.remove("active");
 
     if (data.gameOver) {
       const labels = {
@@ -80,23 +84,34 @@ const GameUI = {
       }
       el.textContent = text;
       el.className = "status-game-over";
+      if (icon) { icon.className = "status-dot game-over"; }
       return;
     }
 
     const turnLabel = data.turn === "w" ? "White" : "Black";
     let text = `${turnLabel} to move`;
 
+    if (data.turn === "w") {
+      document.getElementById("player-bottom")?.classList.add("active");
+    } else {
+      document.getElementById("player-top")?.classList.add("active");
+    }
+
     if (data.inCheckmate) {
       text = "Checkmate!";
       el.className = "status-checkmate";
+      if (icon) { icon.className = "status-dot game-over"; }
     } else if (data.inCheck) {
       text = `${turnLabel} to move — Check!`;
       el.className = "status-check";
+      if (icon) { icon.className = "status-dot check"; }
     } else if (data.inStalemate) {
       text = "Stalemate";
       el.className = "status-stalemate";
+      if (icon) { icon.className = "status-dot game-over"; }
     } else {
       el.className = `status-${data.turn}`;
+      if (icon) { icon.className = `status-dot ${data.turn === "w" ? "white" : "black"}`; }
     }
 
     el.textContent = text;

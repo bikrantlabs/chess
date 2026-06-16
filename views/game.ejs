@@ -11,37 +11,116 @@
     <%- include('partials/header', { userId }) %>
     <main class="main-content">
       <div class="game-page">
-        <div class="game-toolbar">
-          <button id="new-game-btn" class="btn btn-primary">New Game</button>
-        </div>
-        <div class="game-layout">
-          <div class="game-player-info">
-            <div class="player-card">
-              <span class="player-name">White</span>
-              <span class="player-clock" id="clock-white">-</span>
-            </div>
-            <div class="player-card">
-              <span class="player-name">Black</span>
-              <span class="player-clock" id="clock-black">-</span>
-            </div>
-          </div>
-          <div class="game-board-area">
-            <%- include('partials/board') %>
-            <div class="game-actions">
-              <button id="resign-btn" class="btn btn-secondary">Resign</button>
-              <button id="draw-btn" class="btn btn-secondary">Draw</button>
-            </div>
-          </div>
-          <div class="game-sidebar">
-            <div class="game-info-card">
-              <h3>Status</h3>
-              <p id="game-status">Start a new game</p>
-              <div class="material-row">
-                <span class="material-label">Material</span>
-                <span class="material-value" id="material-diff">Equal</span>
+        <div class="game-main">
+          <div class="player-info" id="player-top">
+            <div class="player-details">
+              <div class="player-avatar">♟</div>
+              <div class="player-name-container">
+                <span class="player-title">Black</span>
+                <span class="player-name-text">Player 2</span>
               </div>
             </div>
-            <%- include('partials/move-history') %>
+            <div class="player-clock" id="clock-black">-</div>
+          </div>
+
+          <div class="board-frame">
+            <%- include('partials/board') %>
+          </div>
+
+          <div class="player-info" id="player-bottom">
+            <div class="player-details">
+              <div class="player-avatar">♟</div>
+              <div class="player-name-container">
+                <span class="player-title">White</span>
+                <span class="player-name-text">Player 1</span>
+              </div>
+            </div>
+            <div class="player-clock" id="clock-white">-</div>
+          </div>
+
+          <div class="game-actions">
+            <button id="new-game-btn" class="btn-action" title="New Game">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <button id="resign-btn" class="btn-action" title="Resign">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V3h12l2 4-2 4H4"></path><path d="M16 15H4"></path></svg>
+            </button>
+            <button id="draw-btn" class="btn-action" title="Offer Draw">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="game-sidebar">
+          <!-- Setup panel (pre-game) -->
+          <div class="sidebar-panel" id="setup-panel">
+            <div class="panel-header">
+              <h3>New Game</h3>
+            </div>
+            <div class="panel-body">
+              <div class="setup-section">
+                <label>Mode</label>
+                <div class="btn-group" id="pg-mode">
+                  <button class="group-btn active" data-value="ai">vs AI</button>
+                  <button class="group-btn" data-value="pvp-local">Local 2P</button>
+                </div>
+              </div>
+              <div class="setup-section" id="pg-color-section">
+                <label>Play as</label>
+                <div class="btn-group" id="pg-color">
+                  <button class="group-btn active" data-value="w">White</button>
+                  <button class="group-btn" data-value="b">Black</button>
+                  <button class="group-btn" data-value="random">Random</button>
+                </div>
+              </div>
+              <div class="setup-section">
+                <label>Time</label>
+                <div class="time-grid" id="pg-time">
+                  <button class="time-btn" data-value="">None</button>
+                  <button class="time-btn" data-value="60+1">1+1</button>
+                  <button class="time-btn" data-value="180+2">3+2</button>
+                  <button class="time-btn active" data-value="600+5">10+5</button>
+                  <button class="time-btn" data-value="900+10">15+10</button>
+                  <button class="time-btn" data-value="custom">Custom</button>
+                </div>
+                <div id="pg-custom-wrap" style="display:none">
+                  <input id="pg-custom-time" class="setup-input" type="text" placeholder="e.g. 300+3" value="600+5" />
+                </div>
+              </div>
+              <button id="pg-start" class="play-btn">Play</button>
+            </div>
+          </div>
+
+          <!-- Game panels (in-game) -->
+          <div id="game-panels" style="display:none">
+            <div class="sidebar-panel">
+              <div class="panel-header">
+                <span class="status-dot" id="status-icon"></span>
+                <span id="game-status">Start a new game</span>
+              </div>
+              <div class="panel-body">
+                <div class="stat-row">
+                  <span class="stat-label">Material</span>
+                  <span class="stat-value material-equal" id="material-diff">Equal</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sidebar-panel moves-panel">
+              <div class="panel-header">
+                <h3>Moves</h3>
+              </div>
+              <div class="panel-body no-pad">
+                <div class="move-table-wrap">
+                  <table class="move-table">
+                    <thead>
+                      <tr><th>#</th><th>White</th><th>Black</th></tr>
+                    </thead>
+                    <tbody id="move-list"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -49,6 +128,5 @@
     <script src="/js/chessboard.js"></script>
     <script src="/js/game-ui.js"></script>
     <script src="/js/board-controller.js"></script>
-    <script src="/js/chessboard.js"></script>
   </body>
 </html>
