@@ -1,6 +1,6 @@
 # Chess Project — Phase-Wise Build Plan
 
-NOTE: THE UI design (image) is placed under design/ folder..
+NOTE: THE UI design (image) is placed under design/ folder.
 
 ## Current State
 
