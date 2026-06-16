@@ -4,6 +4,7 @@ const GameUI = {
 
   init() {
     this.renderClocks({ white: 0, black: 0 });
+    this.renderMaterialDiff(0);
   },
 
   renderMoveHistory(moves) {
@@ -73,15 +74,47 @@ const GameUI = {
         "0-1": "Black wins!",
         "1/2-1/2": "Draw!",
       };
-      el.textContent = labels[data.result] ?? "Game Over";
+      let text = labels[data.result] ?? "Game Over";
+      if (data.gameOverReason) {
+        text += ` (${data.gameOverReason})`;
+      }
+      el.textContent = text;
       el.className = "status-game-over";
       return;
     }
 
     const turnLabel = data.turn === "w" ? "White" : "Black";
-    const checkText = data.inCheck ? " (check)" : "";
-    el.textContent = `${turnLabel} to move${checkText}`;
-    el.className = `status-${data.turn}`;
+    let text = `${turnLabel} to move`;
+
+    if (data.inCheckmate) {
+      text = "Checkmate!";
+      el.className = "status-checkmate";
+    } else if (data.inCheck) {
+      text = `${turnLabel} to move — Check!`;
+      el.className = "status-check";
+    } else if (data.inStalemate) {
+      text = "Stalemate";
+      el.className = "status-stalemate";
+    } else {
+      el.className = `status-${data.turn}`;
+    }
+
+    el.textContent = text;
+  },
+
+  renderMaterialDiff(diff) {
+    const el = document.getElementById("material-diff");
+    if (!el) return;
+    if (diff === 0) {
+      el.textContent = "Equal";
+      el.className = "material-equal";
+    } else if (diff > 0) {
+      el.textContent = `+${formatMaterial(diff)}`;
+      el.className = "material-advantage-white";
+    } else {
+      el.textContent = `-${formatMaterial(-diff)}`;
+      el.className = "material-advantage-black";
+    }
   },
 
   renderClocks(clocks) {
@@ -122,6 +155,7 @@ const GameUI = {
           <select id="ng-color">
             <option value="w">White</option>
             <option value="b">Black</option>
+            <option value="random">Random</option>
           </select>
         </label>
         <label>Time Control
@@ -131,7 +165,11 @@ const GameUI = {
             <option value="180+2">3 min + 2s</option>
             <option value="600+5" selected>10 min + 5s</option>
             <option value="900+10">15 min + 10s</option>
+            <option id="ng-custom-option" value="custom">Custom...</option>
           </select>
+        </label>
+        <label id="ng-custom-time-label" style="display:none">Custom Time Control
+          <input id="ng-custom-time" type="text" placeholder="e.g. 300+3" value="600+5" />
         </label>
         <div class="dialog-actions">
           <button id="ng-cancel" class="btn btn-secondary">Cancel</button>
@@ -145,11 +183,19 @@ const GameUI = {
       if (label) label.style.display = e.target.value === "ai" ? "" : "none";
     });
 
+    document.getElementById("ng-time")?.addEventListener("change", (e) => {
+      const label = document.getElementById("ng-custom-time-label");
+      if (label) label.style.display = e.target.value === "custom" ? "" : "none";
+    });
+
     document.getElementById("ng-cancel")?.addEventListener("click", () => overlay.remove());
     document.getElementById("ng-start")?.addEventListener("click", async () => {
       const mode = document.getElementById("ng-mode")?.value ?? "ai";
       const color = document.getElementById("ng-color")?.value ?? "w";
-      const timeControl = document.getElementById("ng-time")?.value ?? "";
+      let timeControl = document.getElementById("ng-time")?.value ?? "";
+      if (timeControl === "custom") {
+        timeControl = document.getElementById("ng-custom-time")?.value ?? "600+5";
+      }
       overlay.remove();
       if (window.startNewGame) await window.startNewGame(mode, color, timeControl);
     });
@@ -179,3 +225,9 @@ const GameUI = {
     });
   },
 };
+
+function formatMaterial(val) {
+  const whole = Math.floor(val);
+  const frac = Math.round((val - whole) * 100);
+  return frac === 0 ? `${whole}` : `${whole}.${frac.toString().padStart(2, "0")}`;
+}

@@ -5,6 +5,8 @@ export class GameService {
   private chess = new Chess();
   private gameId: number | null = null;
   private mode: "ai" | "pvp-local" | "pvp-online" = "ai";
+  private playerColor: "w" | "b" = "w";
+  private gameOverResult: { result: string; reason: string } | null = null;
 
   getFen() {
     try {
@@ -33,13 +35,148 @@ export class GameService {
   reset() {
     this.chess.reset();
     this.gameId = null;
+    this.gameOverResult = null;
   }
 
-  newGame(mode: "ai" | "pvp-local" | "pvp-online" = "ai") {
+  newGame(
+    mode: "ai" | "pvp-local" | "pvp-online" = "ai",
+    color: "w" | "b" | "random" = "w",
+  ) {
     this.chess.reset();
     this.mode = mode;
     this.gameId = null;
+    this.gameOverResult = null;
+    this.playerColor = color === "random"
+      ? (Math.random() < 0.5 ? "w" : "b")
+      : color;
     return { fen: this.chess.fen() };
+  }
+
+  getMode() {
+    return this.mode;
+  }
+
+  getPlayerColor() {
+    return this.playerColor;
+  }
+
+  isCheck() {
+    try {
+      return this.chess.isCheck();
+    } catch {
+      return false;
+    }
+  }
+
+  isCheckmate() {
+    try {
+      return this.chess.isCheckmate();
+    } catch {
+      return false;
+    }
+  }
+
+  isStalemate() {
+    try {
+      return this.chess.isStalemate();
+    } catch {
+      return false;
+    }
+  }
+
+  isDraw() {
+    try {
+      return this.chess.isDraw();
+    } catch {
+      return false;
+    }
+  }
+
+  isInsufficientMaterial() {
+    try {
+      return this.chess.isInsufficientMaterial();
+    } catch {
+      return false;
+    }
+  }
+
+  isThreefoldRepetition() {
+    try {
+      return this.chess.isThreefoldRepetition();
+    } catch {
+      return false;
+    }
+  }
+
+  getMaterialDiff() {
+    try {
+      const fen = this.chess.fen();
+      const boardPart = fen.split(" ")[0];
+      if (!boardPart) return 0;
+      const pieceValues: Record<string, number> = {
+        p: 1, n: 3, b: 3, r: 5, q: 9,
+      };
+      let score = 0;
+      for (const ch of boardPart) {
+        const lower = ch.toLowerCase();
+        const val = pieceValues[lower] ?? 0;
+        if (val === 0) continue;
+        score += ch === lower ? -val : val;
+      }
+      return score;
+    } catch {
+      return 0;
+    }
+  }
+
+  getGameOverResult() {
+    if (this.gameOverResult) return this.gameOverResult;
+    try {
+      if (this.chess.isCheckmate()) {
+        const winner = this.chess.turn() === "w" ? "0-1" : "1-0";
+        this.gameOverResult = { result: winner, reason: "checkmate" };
+        return this.gameOverResult;
+      }
+      if (this.chess.isStalemate()) {
+        this.gameOverResult = { result: "1/2-1/2", reason: "stalemate" };
+        return this.gameOverResult;
+      }
+      if (this.chess.isDraw()) {
+        if (this.chess.isThreefoldRepetition()) {
+          this.gameOverResult = { result: "1/2-1/2", reason: "threefold-repetition" };
+        } else if (this.chess.isInsufficientMaterial()) {
+          this.gameOverResult = { result: "1/2-1/2", reason: "insufficient-material" };
+        } else {
+          this.gameOverResult = { result: "1/2-1/2", reason: "draw" };
+        }
+        return this.gameOverResult;
+      }
+    } catch {
+      // fall through
+    }
+    return null;
+  }
+
+  resign(resigningColor: "w" | "b") {
+    const result = resigningColor === "w" ? "0-1" : "1-0";
+    this.gameOverResult = { result, reason: "resignation" };
+    return this.gameOverResult;
+  }
+
+  getStatus() {
+    return {
+      fen: this.getFen(),
+      turn: this.getTurn(),
+      gameOver: this.isGameOver(),
+      result: this.getGameOverResult()?.result ?? null,
+      gameOverReason: this.getGameOverResult()?.reason ?? null,
+      inCheck: this.isCheck(),
+      inCheckmate: this.isCheckmate(),
+      inStalemate: this.isStalemate(),
+      materialDiff: this.getMaterialDiff(),
+      history: this.getHistory(),
+      mode: this.mode,
+    };
   }
 
   async applyMove(from: string, to: string, promotion = "q") {
@@ -95,6 +232,16 @@ export class GameService {
     } catch {
       return "w";
     }
+  }
+
+  isPlayersTurn(userColor?: "w" | "b") {
+    if (this.mode === "ai") {
+      return this.chess.turn() === this.playerColor;
+    }
+    if (userColor) {
+      return this.chess.turn() === userColor;
+    }
+    return true;
   }
 
   getHistory() {

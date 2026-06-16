@@ -93,6 +93,7 @@ window.startNewGame = async (mode, color, timeControl) => {
   GameUI.renderMoveHistory([]);
   GameUI.updateStatus(data);
   GameUI.renderClocks(data.clocks);
+  GameUI.renderMaterialDiff(data.materialDiff ?? 0);
 
   if (data.turn === "b" && mode === "ai") {
     isProcessingMove = true;
@@ -108,6 +109,7 @@ window.startNewGame = async (mode, color, timeControl) => {
       GameUI.renderMoveHistory(moveData.history || []);
       GameUI.updateStatus(moveData);
       GameUI.renderClocks(moveData.clocks);
+      GameUI.renderMaterialDiff(moveData.materialDiff ?? 0);
       if (moveData.gameOver) {
         gameOver = true;
         GameUI.showGameOver(moveData);
@@ -132,6 +134,7 @@ function applyMoveResponse(data, source, target) {
   }
   GameUI.updateStatus(data);
   GameUI.renderClocks(data.clocks);
+  GameUI.renderMaterialDiff(data.materialDiff ?? 0);
 
   if (data.gameOver) {
     gameOver = true;
@@ -147,7 +150,7 @@ async function onResign() {
   const data = await res.json();
   if (data.ok) {
     gameOver = true;
-    GameUI.showGameOver({ result: data.result, gameOver: true });
+    GameUI.showGameOver({ result: data.result, gameOver: true, gameOverReason: "resignation" });
   }
 }
 

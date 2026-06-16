@@ -361,9 +361,59 @@ a:hover {
   color: #2c2c2c;
 }
 
+.status-check {
+  color: #e65100;
+  font-weight: 600;
+}
+
+.status-checkmate {
+  color: #d32f2f;
+  font-weight: 700;
+}
+
+.status-stalemate {
+  color: #6a1b9a;
+  font-weight: 600;
+}
+
 .status-game-over {
   color: #d32f2f;
   font-weight: 600;
+}
+
+/* Material difference */
+.material-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.material-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+}
+
+.material-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.material-equal {
+  color: #888;
+}
+
+.material-advantage-white {
+  color: #2c2c2c;
+}
+
+.material-advantage-black {
+  color: #2c2c2c;
 }
 
 .move-history {

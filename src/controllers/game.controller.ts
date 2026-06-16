@@ -5,24 +5,51 @@ const game = new GameService();
 
 export function newGame(req: Request, res: Response) {
   const mode = req.body.mode ?? "ai";
-  const result = game.newGame(mode);
-  res.json({ ok: true, ...result });
+  const color = req.body.color ?? "w";
+  const result = game.newGame(mode, color);
+  const status = game.getStatus();
+  res.json({ ok: true, ...result, ...status });
 }
 
-export function move(req: Request, res: Response) {
+export async function move(req: Request, res: Response) {
   const { from, to, promotion } = req.body;
-  const move = game.applyMove(from, to, promotion ?? "q");
-  if (!move) {
-    res.json({ ok: false });
+
+  if (!from || !to) {
+    res.json({ ok: false, error: "from and to required" });
     return;
   }
+
+  const moveResult = await game.applyMove(from, to, promotion ?? "q");
+  if (!moveResult) {
+    res.json({ ok: false, error: "illegal move" });
+    return;
+  }
+
+  const status = game.getStatus();
   res.json({
     ok: true,
-    fen: game.getFen(),
-    move,
-    gameOver: game.isGameOver(),
-    turn: game.getTurn(),
+    move: moveResult,
+    fen: status.fen,
+    gameOver: status.gameOver,
+    turn: status.turn,
+    inCheck: status.inCheck,
+    inCheckmate: status.inCheckmate,
+    inStalemate: status.inStalemate,
+    materialDiff: status.materialDiff,
+    result: status.result,
+    gameOverReason: status.gameOverReason,
+    history: status.history,
   });
+}
+
+export function resign(req: Request, res: Response) {
+  const turn = game.getTurn();
+  const result = game.resign(turn);
+  res.json({ ok: true, ...result, gameOver: true });
+}
+
+export function status(req: Request, res: Response) {
+  res.json({ ok: true, ...game.getStatus() });
 }
 
 export function legalMoves(req: Request, res: Response) {
@@ -37,4 +64,8 @@ export function legalMoves(req: Request, res: Response) {
 
 export function position(req: Request, res: Response) {
   res.json({ fen: game.getFen() });
+}
+
+export function getGameInstance() {
+  return game;
 }
