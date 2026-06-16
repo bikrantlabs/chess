@@ -116,12 +116,14 @@ async function initBoard() {
       isProcessingMove = false;
     },
   });
+  window.board = board;
 
   GameUI.init();
   setupButtonGroups();
   document.getElementById("new-game-btn")?.addEventListener("click", showSetupPanel);
   document.getElementById("resign-btn")?.addEventListener("click", onResign);
   document.getElementById("draw-btn")?.addEventListener("click", onDrawOffer);
+  window.addEventListener("resize", () => board.resize());
 }
 
 window.startNewGame = async (mode, color, timeControl) => {
@@ -137,6 +139,7 @@ window.startNewGame = async (mode, color, timeControl) => {
   }
   gameOver = false;
   isProcessingMove = false;
+  SoundFX.play("open");
   board.position(data.fen);
   document.getElementById("resign-btn")?.removeAttribute("disabled");
   document.getElementById("draw-btn")?.removeAttribute("disabled");

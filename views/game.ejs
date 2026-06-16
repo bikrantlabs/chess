@@ -11,10 +11,41 @@
     <%- include('partials/header', { userId }) %>
     <main class="main-content">
       <div class="game-page">
-        <div class="game-main">
+        <section class="game-main" aria-label="Chess board">
+          <div class="game-shell-header">
+            <div class="game-title">
+              <span class="game-title-icon" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 21h8" />
+                  <path d="M12 17v4" />
+                  <path d="M7 17h10l-1.2-5.2A4 4 0 0 0 12 9a4 4 0 0 0-3.8 2.8L7 17Z" />
+                  <path d="M9 6a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z" />
+                </svg>
+              </span>
+              <div>
+                <h1>Blush Board</h1>
+                <span>Minimal chess, maximal focus</span>
+              </div>
+            </div>
+            <button id="sound-toggle" class="btn-action sound-toggle" type="button" title="Toggle sounds" aria-label="Toggle sounds" aria-pressed="true">
+              <svg class="icon sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+              </svg>
+            </button>
+          </div>
+
           <div class="player-info" id="player-top">
             <div class="player-details">
-              <div class="player-avatar">♟</div>
+              <div class="player-avatar" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 21h8" />
+                  <path d="M12 17v4" />
+                  <path d="M7 17h10l-1.2-5.2A4 4 0 0 0 12 9a4 4 0 0 0-3.8 2.8L7 17Z" />
+                  <path d="M9 6a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z" />
+                </svg>
+              </div>
               <div class="player-name-container">
                 <span class="player-title">Black</span>
                 <span class="player-name-text">Player 2</span>
@@ -29,7 +60,14 @@
 
           <div class="player-info" id="player-bottom">
             <div class="player-details">
-              <div class="player-avatar">♟</div>
+              <div class="player-avatar" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 21h8" />
+                  <path d="M12 17v4" />
+                  <path d="M7 17h10l-1.2-5.2A4 4 0 0 0 12 9a4 4 0 0 0-3.8 2.8L7 17Z" />
+                  <path d="M9 6a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z" />
+                </svg>
+              </div>
               <div class="player-name-container">
                 <span class="player-title">White</span>
                 <span class="player-name-text">Player 1</span>
@@ -38,63 +76,72 @@
             <div class="player-clock" id="clock-white">-</div>
           </div>
 
-          <div class="game-actions">
-            <button id="new-game-btn" class="btn-action" title="New Game">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <div class="game-actions" aria-label="Game actions">
+            <button id="new-game-btn" class="btn-action" type="button" title="New Game" aria-label="New Game">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </button>
-            <button id="resign-btn" class="btn-action" title="Resign">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V3h12l2 4-2 4H4"></path><path d="M16 15H4"></path></svg>
+            <button id="resign-btn" class="btn-action" type="button" title="Resign" aria-label="Resign">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V3h12l2 4-2 4H4"></path><path d="M16 15H4"></path></svg>
             </button>
-            <button id="draw-btn" class="btn-action" title="Offer Draw">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+            <button id="draw-btn" class="btn-action" type="button" title="Offer Draw" aria-label="Offer Draw">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>
             </button>
           </div>
-        </div>
+        </section>
 
-        <div class="game-sidebar">
-          <!-- Setup panel (pre-game) -->
+        <aside class="game-sidebar" aria-label="Game controls and history">
           <div class="sidebar-panel" id="setup-panel">
             <div class="panel-header">
-              <h3>New Game</h3>
+              <div class="panel-heading">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2v20" />
+                  <path d="M2 12h20" />
+                  <path d="m4.93 4.93 14.14 14.14" />
+                  <path d="m19.07 4.93-14.14 14.14" />
+                </svg>
+                <div>
+                  <span class="panel-kicker">Setup</span>
+                  <h3>New Game</h3>
+                </div>
+              </div>
             </div>
             <div class="panel-body">
               <div class="setup-section">
                 <label>Mode</label>
                 <div class="btn-group" id="pg-mode">
-                  <button class="group-btn active" data-value="ai">vs AI</button>
-                  <button class="group-btn" data-value="pvp-local">Local 2P</button>
+                  <button class="group-btn active" type="button" data-value="ai">vs AI</button>
+                  <button class="group-btn" type="button" data-value="pvp-local">Local 2P</button>
                 </div>
               </div>
               <div class="setup-section" id="pg-color-section">
                 <label>Play as</label>
                 <div class="btn-group" id="pg-color">
-                  <button class="group-btn active" data-value="w">White</button>
-                  <button class="group-btn" data-value="b">Black</button>
-                  <button class="group-btn" data-value="random">Random</button>
+                  <button class="group-btn active" type="button" data-value="w">White</button>
+                  <button class="group-btn" type="button" data-value="b">Black</button>
+                  <button class="group-btn" type="button" data-value="random">Random</button>
                 </div>
               </div>
               <div class="setup-section">
                 <label>Time</label>
                 <div class="time-grid" id="pg-time">
-                  <button class="time-btn" data-value="">None</button>
-                  <button class="time-btn" data-value="60+1">1+1</button>
-                  <button class="time-btn" data-value="180+2">3+2</button>
-                  <button class="time-btn active" data-value="600+5">10+5</button>
-                  <button class="time-btn" data-value="900+10">15+10</button>
-                  <button class="time-btn" data-value="custom">Custom</button>
+                  <button class="time-btn" type="button" data-value="">None</button>
+                  <button class="time-btn" type="button" data-value="60+1">1+1</button>
+                  <button class="time-btn" type="button" data-value="180+2">3+2</button>
+                  <button class="time-btn active" type="button" data-value="600+5">10+5</button>
+                  <button class="time-btn" type="button" data-value="900+10">15+10</button>
+                  <button class="time-btn" type="button" data-value="custom">Custom</button>
                 </div>
                 <div id="pg-custom-wrap" style="display:none">
                   <input id="pg-custom-time" class="setup-input" type="text" placeholder="e.g. 300+3" value="600+5" />
                 </div>
               </div>
-              <button id="pg-start" class="play-btn">Play</button>
+              <button id="pg-start" class="play-btn" type="button">Play Match</button>
             </div>
           </div>
 
-          <!-- Game panels (in-game) -->
           <div id="game-panels" style="display:none">
             <div class="sidebar-panel">
-              <div class="panel-header">
+              <div class="panel-header status-card-header">
                 <span class="status-dot" id="status-icon"></span>
                 <span id="game-status">Start a new game</span>
               </div>
@@ -108,7 +155,20 @@
 
             <div class="sidebar-panel moves-panel">
               <div class="panel-header">
-                <h3>Moves</h3>
+                <div class="panel-heading">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 6h13" />
+                    <path d="M8 12h13" />
+                    <path d="M8 18h13" />
+                    <path d="M3 6h.01" />
+                    <path d="M3 12h.01" />
+                    <path d="M3 18h.01" />
+                  </svg>
+                  <div>
+                    <span class="panel-kicker">Record</span>
+                    <h3>Moves</h3>
+                  </div>
+                </div>
               </div>
               <div class="panel-body no-pad">
                 <div class="move-table-wrap">
@@ -122,7 +182,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </aside>
       </div>
     </main>
     <script src="/js/chessboard.js"></script>
