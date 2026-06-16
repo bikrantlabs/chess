@@ -11,17 +11,38 @@
     <%- include('partials/header', { userId }) %>
     <main class="main-content">
       <div class="game-page">
+        <div class="game-toolbar">
+          <button id="new-game-btn" class="btn btn-primary">New Game</button>
+        </div>
         <div class="game-layout">
-          <%- include('partials/board') %>
+          <div class="game-player-info">
+            <div class="player-card">
+              <span class="player-name">White</span>
+              <span class="player-clock" id="clock-white">-</span>
+            </div>
+            <div class="player-card">
+              <span class="player-name">Black</span>
+              <span class="player-clock" id="clock-black">-</span>
+            </div>
+          </div>
+          <div class="game-board-area">
+            <%- include('partials/board') %>
+            <div class="game-actions">
+              <button id="resign-btn" class="btn btn-secondary">Resign</button>
+              <button id="draw-btn" class="btn btn-secondary">Draw</button>
+            </div>
+          </div>
           <div class="game-sidebar">
             <div class="game-info-card">
               <h3>Status</h3>
-              <p id="game-status">Your turn</p>
+              <p id="game-status">Start a new game</p>
             </div>
             <%- include('partials/move-history') %>
           </div>
         </div>
       </div>
     </main>
+    <script src="/js/game-ui.js"></script>
+    <script src="/js/board-controller.js"></script>
   </body>
 </html>

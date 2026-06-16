@@ -245,24 +245,86 @@ a:hover {
 .game-page {
   width: 100%;
   max-width: 1100px;
-  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
+.game-toolbar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
 .game-layout {
   display: flex;
-  gap: 32px;
+  gap: 24px;
   align-items: flex-start;
   width: 100%;
   justify-content: center;
+}
+
+.game-player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 100px;
+}
+
+.player-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 110px;
+}
+
+.player-name {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+}
+
+.player-clock {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #2c2c2c;
+}
+
+.player-clock.warning {
+  color: #d32f2f;
+}
+
+.game-board-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 #board {
   width: 480px;
   max-width: 90vw;
   flex-shrink: 0;
+}
+
+.game-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.game-actions .btn {
+  flex: 1;
+  text-align: center;
+  font-size: 0.85rem;
+  padding: 8px 12px;
 }
 
 .game-sidebar {
@@ -291,6 +353,19 @@ a:hover {
   color: #2c2c2c;
 }
 
+.status-w {
+  color: #2c2c2c;
+}
+
+.status-b {
+  color: #2c2c2c;
+}
+
+.status-game-over {
+  color: #d32f2f;
+  font-weight: 600;
+}
+
 .move-history {
   background: #fff;
   border: 1px solid #e0e0e0;
@@ -306,20 +381,41 @@ a:hover {
   margin-bottom: 8px;
 }
 
+.move-table-wrap {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
 .move-table {
   width: 100%;
   font-size: 0.85rem;
   border-collapse: collapse;
 }
 
+.move-table th {
+  font-size: 0.75rem;
+  color: #aaa;
+  text-align: left;
+  padding: 2px 8px;
+  font-weight: 500;
+}
+
 .move-table td {
-  padding: 4px 8px;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+
+.move-table td:hover {
+  background: #f0f4f8;
 }
 
 .move-table .move-num {
   color: #888;
   text-align: right;
   width: 30px;
+  cursor: default;
 }
 
 .move-table .move-white,
@@ -327,10 +423,96 @@ a:hover {
   width: 80px;
 }
 
+.move-table .move-white.move-current,
+.move-table .move-black.move-current {
+  background: #e3f2fd;
+  font-weight: 600;
+}
+
+/* Dialogs */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background: #fff;
+  border-radius: 10px;
+  padding: 28px;
+  min-width: 320px;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.dialog h2 {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+  color: #2c2c2c;
+}
+
+.dialog p {
+  margin-bottom: 20px;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.dialog select,
+.dialog input {
+  padding: 8px 10px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.dialog select:focus,
+.dialog input:focus {
+  border-color: #4a6fa5;
+  box-shadow: 0 0 0 2px rgba(74, 111, 165, 0.15);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.dialog-actions .btn {
+  font-size: 0.85rem;
+  padding: 8px 20px;
+}
+
 @media (max-width: 768px) {
   .game-layout {
     flex-direction: column;
     align-items: center;
+  }
+
+  .game-player-info {
+    flex-direction: row;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .player-card {
+    flex: 1;
   }
 
   .game-sidebar {
