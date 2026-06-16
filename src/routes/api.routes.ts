@@ -3,6 +3,7 @@ import {
   newGame,
   move,
   resign,
+  draw,
   status,
   legalMoves,
   position,
@@ -14,6 +15,7 @@ router.use(json());
 router.post("/api/new-game", newGame);
 router.post("/api/move", move);
 router.post("/api/resign", resign);
+router.post("/api/draw", draw);
 router.get("/api/status", status);
 router.post("/api/legal-moves", legalMoves);
 router.get("/api/position", position);

@@ -48,6 +48,11 @@ export function resign(req: Request, res: Response) {
   res.json({ ok: true, ...result, gameOver: true });
 }
 
+export function draw(req: Request, res: Response) {
+  const result = game.offerDraw();
+  res.json({ ok: true, ...result, gameOver: true });
+}
+
 export function status(req: Request, res: Response) {
   res.json({ ok: true, ...game.getStatus() });
 }

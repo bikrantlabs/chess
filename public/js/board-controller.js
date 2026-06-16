@@ -155,7 +155,14 @@ async function onResign() {
 }
 
 async function onDrawOffer() {
-  await GameUI.showConfirmDialog("Draw offered.");
+  const ok = await GameUI.showConfirmDialog("Are you sure you want to offer a draw?");
+  if (!ok) return;
+  const res = await fetch("/api/draw", { method: "POST" });
+  const data = await res.json();
+  if (data.ok) {
+    gameOver = true;
+    GameUI.showGameOver({ result: data.result, gameOver: true, gameOverReason: "draw-agreement" });
+  }
 }
 
 document.addEventListener("DOMContentLoaded", initBoard);

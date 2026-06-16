@@ -163,6 +163,11 @@ export class GameService {
     return this.gameOverResult;
   }
 
+  offerDraw() {
+    this.gameOverResult = { result: "1/2-1/2", reason: "draw-agreement" };
+    return this.gameOverResult;
+  }
+
   getStatus() {
     return {
       fen: this.getFen(),
