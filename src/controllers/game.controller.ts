@@ -3,10 +3,10 @@ import { GameService } from "../services/game.service.js";
 
 const game = new GameService();
 
-export async function newGame(req: Request, res: Response) {
+export function newGame(req: Request, res: Response) {
   const mode = req.body.mode ?? "ai";
   const color = req.body.color ?? "w";
-  const result = await game.newGame(mode, color, req.session.userId);
+  const result = game.newGame(mode, color);
   const status = game.getStatus();
   res.json({ ok: true, ...result, ...status });
 }

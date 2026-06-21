@@ -56,23 +56,9 @@ function setupButtonGroups() {
 }
 
 async function initBoard() {
-  const initState = window.__INIT_STATE__ || null;
-
-  if (initState) {
-    gameStarted = true;
-    gameMode = initState.mode;
-    playerColor = initState.playerColor || "w";
-    currentTurn = initState.turn;
-    gameOver = initState.gameOver || false;
-    document.body.classList.remove("board-disabled");
-    document.getElementById("resign-btn")?.removeAttribute("disabled");
-    document.getElementById("draw-btn")?.removeAttribute("disabled");
-    showGamePanels();
-  }
-
   board = new Chessboard("board", {
     draggable: true,
-    position: initState ? initState.fen : "start",
+    position: "start",
     showNotation: true,
 
     onSelectPiece: async (square, piece) => {
@@ -153,18 +139,7 @@ async function initBoard() {
   document.getElementById("resign-btn")?.addEventListener("click", onResign);
   document.getElementById("draw-btn")?.addEventListener("click", onDrawOffer);
 
-  if (initState) {
-    GameUI.renderMoveHistory(initState.history || []);
-    GameUI.updateStatus(initState);
-    GameUI.renderMaterialDiff(initState.materialDiff ?? 0);
-    if (initState.gameOver) {
-      GameUI.showGameOver(initState);
-    } else if (initState.mode === "ai" && initState.playerColor !== initState.turn) {
-      setTimeout(() => triggerAiMove(), 500);
-    }
-  } else {
-    document.body.classList.add("board-disabled");
-  }
+  document.body.classList.add("board-disabled");
 
   window.addEventListener("resize", () => board.resize());
 }

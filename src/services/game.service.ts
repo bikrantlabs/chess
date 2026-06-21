@@ -1,5 +1,4 @@
 import { Chess, Square } from "chess.js";
-import prisma from "../lib/prisma.js";
 import { EngineService } from "./engine.service.js";
 import { ENGINE_PATH } from "../config.js";
 
@@ -42,10 +41,9 @@ export class GameService {
     this.cleanupEngine();
   }
 
-  async newGame(
+  newGame(
     mode: "ai" | "pvp-local" | "pvp-online" = "ai",
     color: "w" | "b" | "random" = "w",
-    userId?: number,
   ) {
     this.chess.reset();
     this.mode = mode;
@@ -55,54 +53,11 @@ export class GameService {
     this.playerColor = color === "random"
       ? (Math.random() < 0.5 ? "w" : "b")
       : color;
-
-    const game = await prisma.game.create({
-      data: {
-        mode,
-        fen: this.chess.fen(),
-        whiteUserId: userId ?? null,
-        blackUserId: null,
-      },
-    });
-    this.gameId = game.id;
-
-    return { fen: this.chess.fen(), gameId: game.id };
-  }
-
-  async loadStateFromDb(id: number) {
-    const game = await prisma.game.findUnique({
-      where: { id },
-      include: { moves: { orderBy: { moveNumber: "asc" } } },
-    });
-    if (!game) return null;
-
-    this.chess.reset();
-    this.gameId = game.id;
-    this.mode = game.mode as "ai" | "pvp-local" | "pvp-online";
-    this.gameOverResult = null;
-    this.cleanupEngine();
-
-    if (game.moves.length > 0) {
-      for (const move of game.moves) {
-        try {
-          const moveOpts: { from: string; to: string; promotion?: string } = { from: move.fromSq, to: move.toSq };
-          if (move.promotion != null) moveOpts.promotion = move.promotion;
-          this.chess.move(moveOpts);
-        } catch {
-          break;
-        }
-      }
-    }
-
-    return { id: game.id, fen: this.chess.fen(), mode: this.mode };
+    return { fen: this.chess.fen() };
   }
 
   getMode() {
     return this.mode;
-  }
-
-  getGameId() {
-    return this.gameId;
   }
 
   getPlayerColor() {
@@ -297,25 +252,6 @@ export class GameService {
       return null;
     }
     if (!move) return null;
-
-    if (this.gameId) {
-      await prisma.move.create({
-        data: {
-          gameId: this.gameId,
-          moveNumber: this.chess.moveNumber(),
-          fromSq: from,
-          toSq: to,
-          promotion: promotion !== "q" ? promotion : null,
-          san: move.san,
-          fen: this.chess.fen(),
-        },
-      });
-
-      await prisma.game.update({
-        where: { id: this.gameId },
-        data: { fen: this.chess.fen() },
-      });
-    }
 
     return {
       from: move.from,
