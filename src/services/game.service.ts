@@ -1,5 +1,6 @@
 import { Chess, Square } from "chess.js";
-import prisma from "../lib/prisma.js";
+import { EngineService } from "./engine.service.js";
+import { ENGINE_PATH } from "../config.js";
 
 export class GameService {
   private chess = new Chess();
@@ -7,6 +8,7 @@ export class GameService {
   private mode: "ai" | "pvp-local" | "pvp-online" = "ai";
   private playerColor: "w" | "b" = "w";
   private gameOverResult: { result: string; reason: string } | null = null;
+  private engine: EngineService | null = null;
 
   getFen() {
     try {
@@ -36,6 +38,7 @@ export class GameService {
     this.chess.reset();
     this.gameId = null;
     this.gameOverResult = null;
+    this.cleanupEngine();
   }
 
   newGame(
@@ -46,6 +49,7 @@ export class GameService {
     this.mode = mode;
     this.gameId = null;
     this.gameOverResult = null;
+    this.cleanupEngine();
     this.playerColor = color === "random"
       ? (Math.random() < 0.5 ? "w" : "b")
       : color;
@@ -184,6 +188,62 @@ export class GameService {
     };
   }
 
+  async playerMove(from: string, to: string, promotion = "q") {
+    const moveResult = await this.applyMove(from, to, promotion);
+    if (!moveResult) return null;
+    return { move: moveResult, ...this.getStatus() };
+  }
+
+  async doEngineMove() {
+    if (this.mode !== "ai" || this.isGameOver()) return null;
+
+    try {
+      if (!this.engine) {
+        this.engine = new EngineService(ENGINE_PATH);
+        try {
+          await this.engine.init();
+        } catch {
+          this.engine = null;
+          return this.fallbackMove();
+        }
+      }
+
+      this.engine.setPosition(this.chess.fen());
+      let bestMove: string;
+      try {
+        bestMove = await this.engine.goTime(2000, 10000);
+      } catch {
+        try { await this.engine.stop(); } catch { /* ignore */ }
+        return this.fallbackMove();
+      }
+
+      if (!bestMove || bestMove.length < 4) return this.fallbackMove();
+      const from = bestMove.slice(0, 2) as Square;
+      const to = bestMove.slice(2, 4) as Square;
+      const promotion = bestMove.length > 4 ? bestMove[4] : undefined;
+
+      const engineMoveResult = await this.applyMove(from, to, promotion);
+      if (!engineMoveResult) return this.fallbackMove();
+      return engineMoveResult;
+    } catch (err) {
+      console.error("Engine move failed:", err);
+      return this.fallbackMove();
+    }
+  }
+
+  private fallbackMove() {
+    try {
+      const moves = this.chess.moves({ verbose: true });
+      if (moves.length === 0) return null;
+      const move = moves[Math.floor(Math.random() * moves.length)] as {
+        from: string; to: string; promotion?: string;
+      };
+      return this.applyMove(move.from, move.to, move.promotion);
+    } catch {
+      return null;
+    }
+  }
+
   async applyMove(from: string, to: string, promotion = "q") {
     let move;
     try {
@@ -192,25 +252,6 @@ export class GameService {
       return null;
     }
     if (!move) return null;
-
-    if (this.gameId) {
-      await prisma.move.create({
-        data: {
-          gameId: this.gameId,
-          moveNumber: this.chess.moveNumber(),
-          fromSq: from,
-          toSq: to,
-          promotion: promotion !== "q" ? promotion : null,
-          san: move.san,
-          fen: this.chess.fen(),
-        },
-      });
-
-      await prisma.game.update({
-        where: { id: this.gameId },
-        data: { fen: this.chess.fen() },
-      });
-    }
 
     return {
       from: move.from,
@@ -259,5 +300,12 @@ export class GameService {
 
   loadGame(id: number) {
     this.gameId = id;
+  }
+
+  private async cleanupEngine() {
+    if (this.engine) {
+      try { await this.engine.quit(); } catch { /* ignore */ }
+      this.engine = null;
+    }
   }
 }

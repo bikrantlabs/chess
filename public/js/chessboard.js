@@ -316,7 +316,9 @@ class Chessboard {
       if (dx * dx + dy * dy > 25) {
         this._startDrag(this._potentialDrag.square, this._potentialDrag.piece, e);
         this._potentialDrag = null;
-        this._isDragging = true;
+        if (this._dragFloatEl) {
+          this._isDragging = true;
+        }
       }
     }
 
@@ -338,6 +340,14 @@ class Chessboard {
   }
 
   _startDrag(square, piece, e) {
+    if (this._trigger('onDragStart', square, piece, { ...this._currentPosition }, this._orientation) === false) {
+      this._dragFloatEl = null;
+      this._dragSource = null;
+      this._dragPiece = null;
+      this._setPieceVisibility(square, true);
+      return;
+    }
+
     const pieceUrl = this._getPieceUrl(piece);
 
     this._dragFloatEl = document.createElement('img');
@@ -360,8 +370,6 @@ class Chessboard {
 
     this._clearHighlights();
     this._setPieceVisibility(square, false);
-
-    this._trigger('onDragStart', square, piece, { ...this._currentPosition }, this._orientation);
   }
 
   _updateDrag(e) {

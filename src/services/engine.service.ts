@@ -16,14 +16,18 @@ export class EngineService {
   private messageCallback: ((line: string) => void) | null = null;
   private ready: Promise<void>;
 
-  constructor(private enginePath: string = "../engine/endgame.exe") {
+  constructor(private enginePath: string) {
     this.ready = new Promise<void>((resolve, reject) => {
       this.process = spawn(this.enginePath, [], {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
+      this.process.stderr?.on("data", (data: Buffer) => {
+        console.error("Engine stderr:", data.toString());
+      });
+
       let handshake = 0;
-      this.process.stdout!.on("data", (data: Buffer) => {
+      this.process.stdout?.on("data", (data: Buffer) => {
         this.buffer += data.toString();
         const lines = this.buffer.split("\n");
         this.buffer = lines.pop() ?? "";
@@ -123,6 +127,9 @@ export class EngineService {
             this.queue.splice(idx, 1);
           }
           this.busy = false;
+          if (command.startsWith("go ")) {
+            this.sendRaw("stop");
+          }
           reject(new Error(`Engine command timed out: ${command}`));
         }, timeoutMs);
       }

@@ -303,6 +303,22 @@ const GameUI = {
       });
     });
   },
+
+  showThinking() {
+    const el = document.getElementById("game-status");
+    if (el) {
+      el.textContent = "AI thinking...";
+      el.className = "status-thinking";
+    }
+  },
+
+  hideThinking() {
+    const el = document.getElementById("game-status");
+    if (el && el.className === "status-thinking") {
+      el.textContent = "";
+      el.className = "";
+    }
+  },
 };
 
 function formatMaterial(val) {

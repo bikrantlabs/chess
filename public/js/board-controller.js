@@ -1,8 +1,14 @@
 let board = null;
 let isProcessingMove = false;
 let gameOver = false;
+let gameStarted = false;
+let gameMode = "ai";
+let playerColor = "w";
+let currentTurn = "w";
 
 function showSetupPanel() {
+  gameStarted = false;
+  document.body.classList.add("board-disabled");
   document.getElementById("setup-panel")?.style.removeProperty("display");
   document.getElementById("game-panels")?.style.setProperty("display", "none");
   document.getElementById("resign-btn")?.setAttribute("disabled", "true");
@@ -55,8 +61,9 @@ async function initBoard() {
     position: "start",
     showNotation: true,
 
-    onSelectPiece: async (square) => {
-      if (isProcessingMove || gameOver) return;
+    onSelectPiece: async (square, piece) => {
+      if (!gameStarted || isProcessingMove || gameOver) return;
+      if (piece && piece[0] !== currentTurn) return;
       board.clearHighlights();
       board.highlight([square], "cb-highlight-selected");
       try {
@@ -75,16 +82,21 @@ async function initBoard() {
       }
     },
 
-    onDragStart: () => {
-      if (isProcessingMove || gameOver) return false;
+    onDragStart: (source, piece) => {
+      if (!gameStarted || isProcessingMove || gameOver) return false;
+      if (piece && piece[0] !== currentTurn) return false;
       isProcessingMove = true;
     },
 
     onDrop: async (source, target, piece) => {
       board.clearHighlights();
+      if (!piece || piece[0] !== currentTurn) {
+        isProcessingMove = false;
+        return "snapback";
+      }
       const isPromotion =
-        (piece === "wP" && target[1] === "8") ||
-        (piece === "bP" && target[1] === "1");
+        (piece === "wP" && target[1] === "8" && source[1] === "7") ||
+        (piece === "bP" && target[1] === "1" && source[1] === "2");
       let promotion;
       if (isPromotion) promotion = await board.showPromotionDialog(piece[0]);
 
@@ -99,7 +111,10 @@ async function initBoard() {
           isProcessingMove = false;
           return "snapback";
         }
-        applyMoveResponse(data, source, target);
+        applyPlayerMove(data, source, target);
+        if (!gameOver && gameMode === "ai") {
+          await triggerAiMove();
+        }
       } catch (err) {
         console.error("Move failed:", err);
         isProcessingMove = false;
@@ -123,6 +138,9 @@ async function initBoard() {
   document.getElementById("new-game-btn")?.addEventListener("click", showSetupPanel);
   document.getElementById("resign-btn")?.addEventListener("click", onResign);
   document.getElementById("draw-btn")?.addEventListener("click", onDrawOffer);
+
+  document.body.classList.add("board-disabled");
+
   window.addEventListener("resize", () => board.resize());
 }
 
@@ -139,6 +157,11 @@ window.startNewGame = async (mode, color, timeControl) => {
   }
   gameOver = false;
   isProcessingMove = false;
+  gameStarted = true;
+  document.body.classList.remove("board-disabled");
+  gameMode = mode;
+  playerColor = color === "random" ? data.turn : color;
+  currentTurn = data.turn;
   SoundFX.play("open");
   board.position(data.fen);
   document.getElementById("resign-btn")?.removeAttribute("disabled");
@@ -149,8 +172,33 @@ window.startNewGame = async (mode, color, timeControl) => {
   GameUI.renderClocks(data.clocks);
   GameUI.renderMaterialDiff(data.materialDiff ?? 0);
 
-  if (data.turn === "b" && mode === "ai") {
-    isProcessingMove = true;
+  if (mode === "ai" && playerColor !== data.turn) {
+    await triggerAiMove();
+  }
+};
+
+function applyPlayerMove(data, source, target) {
+  if (data.move) {
+    GameUI.appendMove({ ...data.move, after: data.fen });
+  }
+  board.position(data.fen);
+  board.highlightLastMove(source, target);
+  GameUI.updateStatus(data);
+  GameUI.renderClocks(data.clocks);
+  GameUI.renderMaterialDiff(data.materialDiff ?? 0);
+  currentTurn = data.turn;
+
+  if (data.gameOver) {
+    gameOver = true;
+    GameUI.showGameOver(data);
+  }
+  isProcessingMove = false;
+}
+
+async function triggerAiMove() {
+  isProcessingMove = true;
+  GameUI.showThinking();
+  try {
     const moveRes = await fetch("/api/move", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -160,40 +208,20 @@ window.startNewGame = async (mode, color, timeControl) => {
     if (moveData.ok && moveData.engineMove) {
       board.position(moveData.fen);
       board.highlightLastMove(moveData.engineMove.from, moveData.engineMove.to);
-      GameUI.renderMoveHistory(moveData.history || []);
+      GameUI.appendMove({ ...moveData.engineMove, after: moveData.fen });
       GameUI.updateStatus(moveData);
       GameUI.renderClocks(moveData.clocks);
       GameUI.renderMaterialDiff(moveData.materialDiff ?? 0);
+      currentTurn = moveData.turn;
       if (moveData.gameOver) {
         gameOver = true;
         GameUI.showGameOver(moveData);
       }
     }
-    isProcessingMove = false;
+  } catch (err) {
+    console.error("AI move failed:", err);
   }
-};
-
-function applyMoveResponse(data, source, target) {
-  if (data.move) {
-    GameUI.appendMove({ ...data.move, after: data.fen });
-  }
-  board.position(data.fen);
-  if (data.engineMove) {
-    board.highlightLastMove(data.engineMove.from, data.engineMove.to);
-    if (data.move) {
-      GameUI.appendMove({ ...data.engineMove, after: data.fen });
-    }
-  } else {
-    board.highlightLastMove(source, target);
-  }
-  GameUI.updateStatus(data);
-  GameUI.renderClocks(data.clocks);
-  GameUI.renderMaterialDiff(data.materialDiff ?? 0);
-
-  if (data.gameOver) {
-    gameOver = true;
-    GameUI.showGameOver(data);
-  }
+  GameUI.hideThinking();
   isProcessingMove = false;
 }
 
