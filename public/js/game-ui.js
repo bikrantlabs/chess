@@ -1,3 +1,65 @@
+const SoundFX = {
+  enabled: true,
+  context: null,
+
+  init() {
+    const saved = localStorage.getItem("chess-sound-enabled");
+    this.enabled = saved === null ? true : saved === "true";
+    this.syncToggle();
+
+    document.getElementById("sound-toggle")?.addEventListener("click", () => {
+      this.enabled = !this.enabled;
+      localStorage.setItem("chess-sound-enabled", String(this.enabled));
+      this.syncToggle();
+      this.play("tap", true);
+    });
+
+    document.addEventListener("click", (event) => {
+      if (event.target.closest("button, .btn, .move-white, .move-black")) {
+        this.play("tap");
+      }
+    });
+  },
+
+  syncToggle() {
+    const button = document.getElementById("sound-toggle");
+    if (!button) return;
+    button.setAttribute("aria-pressed", String(this.enabled));
+    button.style.opacity = this.enabled ? "1" : "0.48";
+    button.title = this.enabled ? "Sounds on" : "Sounds off";
+  },
+
+  play(type, force = false) {
+    if (!force && !this.enabled) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    this.context ||= new AudioContext();
+
+    const now = this.context.currentTime;
+    const gain = this.context.createGain();
+    gain.connect(this.context.destination);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(type === "gameOver" ? 0.055 : 0.035, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + (type === "gameOver" ? 0.34 : 0.16));
+
+    const notes = {
+      tap: [660],
+      open: [520, 740],
+      move: [440, 680],
+      gameOver: [392, 330],
+    }[type] || [520];
+
+    notes.forEach((frequency, index) => {
+      const osc = this.context.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(frequency, now + index * 0.045);
+      osc.connect(gain);
+      osc.start(now + index * 0.045);
+      osc.stop(now + 0.16 + index * 0.045);
+    });
+  },
+};
+
 const GameUI = {
   moveList: [],
   viewedMove: -1,
@@ -46,6 +108,7 @@ const GameUI = {
   appendMove(move) {
     this.moveList.push(move);
     this.renderMoveHistory(this.moveList);
+    SoundFX.play("move");
   },
 
   highlightCurrentMove() {
@@ -79,12 +142,10 @@ const GameUI = {
         "1/2-1/2": "Draw!",
       };
       let text = labels[data.result] ?? "Game Over";
-      if (data.gameOverReason) {
-        text += ` (${data.gameOverReason})`;
-      }
+      if (data.gameOverReason) text += ` (${data.gameOverReason})`;
       el.textContent = text;
       el.className = "status-game-over";
-      if (icon) { icon.className = "status-dot game-over"; }
+      if (icon) icon.className = "status-dot game-over";
       return;
     }
 
@@ -100,18 +161,18 @@ const GameUI = {
     if (data.inCheckmate) {
       text = "Checkmate!";
       el.className = "status-checkmate";
-      if (icon) { icon.className = "status-dot game-over"; }
+      if (icon) icon.className = "status-dot game-over";
     } else if (data.inCheck) {
-      text = `${turnLabel} to move — Check!`;
+      text = `${turnLabel} to move - Check!`;
       el.className = "status-check";
-      if (icon) { icon.className = "status-dot check"; }
+      if (icon) icon.className = "status-dot check";
     } else if (data.inStalemate) {
       text = "Stalemate";
       el.className = "status-stalemate";
-      if (icon) { icon.className = "status-dot game-over"; }
+      if (icon) icon.className = "status-dot game-over";
     } else {
       el.className = `status-${data.turn}`;
-      if (icon) { icon.className = `status-dot ${data.turn === "w" ? "white" : "black"}`; }
+      if (icon) icon.className = `status-dot ${data.turn === "w" ? "white" : "black"}`;
     }
 
     el.textContent = text;
@@ -122,13 +183,13 @@ const GameUI = {
     if (!el) return;
     if (diff === 0) {
       el.textContent = "Equal";
-      el.className = "material-equal";
+      el.className = "stat-value material-equal";
     } else if (diff > 0) {
       el.textContent = `+${formatMaterial(diff)}`;
-      el.className = "material-advantage-white";
+      el.className = "stat-value material-advantage-white";
     } else {
       el.textContent = `-${formatMaterial(-diff)}`;
-      el.className = "material-advantage-black";
+      el.className = "stat-value material-advantage-black";
     }
   },
 
@@ -150,6 +211,7 @@ const GameUI = {
 
   showGameOver(data) {
     this.updateStatus(data);
+    SoundFX.play("gameOver");
     document.getElementById("resign-btn")?.setAttribute("disabled", "true");
     document.getElementById("draw-btn")?.setAttribute("disabled", "true");
   },
@@ -192,6 +254,7 @@ const GameUI = {
         </div>
       </div>`;
     document.body.appendChild(overlay);
+    SoundFX.play("open");
 
     document.getElementById("ng-mode")?.addEventListener("change", (e) => {
       const label = document.getElementById("ng-color-label");
@@ -229,6 +292,7 @@ const GameUI = {
           </div>
         </div>`;
       document.body.appendChild(overlay);
+      SoundFX.play("open");
       document.getElementById("cf-cancel")?.addEventListener("click", () => {
         overlay.remove();
         resolve(false);
@@ -246,3 +310,5 @@ function formatMaterial(val) {
   const frac = Math.round((val - whole) * 100);
   return frac === 0 ? `${whole}` : `${whole}.${frac.toString().padStart(2, "0")}`;
 }
+
+document.addEventListener("DOMContentLoaded", () => SoundFX.init());

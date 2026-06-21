@@ -1,14 +1,21 @@
 .cb-board-container {
-  display: inline-block;
+  display: block;
+  width: 100%;
+  height: 100%;
   max-width: 100%;
 }
 
 .cb-board {
   position: relative;
   box-sizing: content-box;
+  overflow: hidden;
+  border-radius: 7px;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(190, 39, 104, 0.18),
+    inset 0 0 42px rgba(92, 33, 66, 0.08);
 }
 
 .cb-row {
@@ -21,65 +28,108 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 160ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cb-square::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.24), transparent 48%, rgba(92, 33, 66, 0.03));
 }
 
 .cb-square-light {
-  background-color: #f0d9b5;
-  color: #b58863;
+  background-color: #fff1f7;
+  color: #d5548d;
 }
 
 .cb-square-dark {
-  background-color: #b58863;
-  color: #f0d9b5;
+  background-color: #f2a0c2;
+  color: #fff7fb;
+}
+
+.cb-square-light:hover {
+  background-color: #ffe7f1;
+}
+
+.cb-square-dark:hover {
+  background-color: #eb85b1;
 }
 
 .cb-piece {
-  width: 100%;
-  height: 100%;
+  width: 94%;
+  height: 94%;
   object-fit: contain;
   cursor: grab;
   display: block;
   position: relative;
   z-index: 2;
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
+  filter:
+    drop-shadow(0 9px 7px rgba(92, 33, 66, 0.18))
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
+  transform: translateY(-1px);
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 160ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cb-square:hover .cb-piece {
+  transform: translateY(-3px) scale(1.02);
+  filter:
+    drop-shadow(0 12px 10px rgba(92, 33, 66, 0.22))
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.6));
 }
 
 .cb-piece-dragging {
   cursor: grabbing;
-  opacity: 0.85;
+  opacity: 0.92;
+  z-index: 1001;
+  filter: drop-shadow(0 18px 18px rgba(92, 33, 66, 0.28));
 }
 
 .cb-notation {
   position: absolute;
-  cursor: default;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  pointer-events: none;
   z-index: 1;
+  pointer-events: none;
+  cursor: default;
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: clamp(8px, 1.35vw, 11px);
+  font-weight: 900;
   line-height: 1;
 }
 
 .cb-notation-numeric {
-  top: 2px;
-  left: 3px;
+  top: 5px;
+  left: 6px;
 }
 
 .cb-notation-alpha {
-  bottom: 1px;
-  right: 3px;
+  right: 6px;
+  bottom: 5px;
 }
 
 .cb-square-light .cb-notation {
-  color: #b58863;
+  color: rgba(190, 39, 104, 0.58);
 }
 
 .cb-square-dark .cb-notation {
-  color: #f0d9b5;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .cb-highlight-selected {
-  box-shadow: inset 0 0 0 3px rgba(100, 160, 50, 0.7);
+  box-shadow:
+    inset 0 0 0 4px rgba(190, 39, 104, 0.82),
+    inset 0 0 22px rgba(255, 255, 255, 0.42);
+}
+
+.cb-highlight-selected::after {
+  content: "";
+  position: absolute;
+  inset: 9%;
+  z-index: 1;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
 }
 
 .cb-highlight-legal {
@@ -92,55 +142,96 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 28%;
-  height: 28%;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.2);
-  pointer-events: none;
   z-index: 3;
+  width: 29%;
+  height: 29%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(190, 39, 104, 0.72), rgba(246, 111, 164, 0.45));
+  box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.24), 0 8px 18px rgba(190, 39, 104, 0.22);
+  transform: translate(-50%, -50%);
+  animation: legalPulse 1.8s ease-in-out infinite;
 }
 
 .cb-highlight-legal-capture {
-  box-shadow: inset 0 0 0 3px rgba(200, 40, 40, 0.6);
   cursor: pointer;
+  box-shadow:
+    inset 0 0 0 5px rgba(190, 39, 104, 0.88),
+    inset 0 0 0 999px rgba(255, 226, 238, 0.22);
+}
+
+.cb-highlight-legal-capture::after {
+  content: "";
+  position: absolute;
+  inset: 15%;
+  z-index: 3;
+  border: 3px solid rgba(255, 255, 255, 0.86);
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 0 3px rgba(190, 39, 104, 0.30);
 }
 
 .cb-highlight-last-move {
-  background: rgba(155, 199, 0, 0.35);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 220, 235, 0.32)),
+    #ffc4dc !important;
+  box-shadow: inset 0 0 0 3px rgba(223, 63, 131, 0.28);
+}
+
+@keyframes legalPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.92; }
+  50% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
 }
 
 .cb-promotion-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  z-index: 500;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 500;
-  backdrop-filter: blur(2px);
+  padding: 18px;
+  background: rgba(92, 33, 66, 0.32);
+  backdrop-filter: blur(10px);
 }
 
 .cb-promotion-dialog {
   display: flex;
-  gap: 4px;
-  background: #2d2a27;
-  padding: 8px;
+  gap: 8px;
+  border: 1px solid rgba(223, 63, 131, 0.22);
   border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  border: 1px solid #4a4642;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.90);
+  box-shadow: 0 22px 58px rgba(92, 33, 66, 0.25);
 }
 
 .cb-promotion-piece {
   width: 64px;
   height: 64px;
   cursor: pointer;
-  border: 2px solid transparent;
-  border-radius: 6px;
-  transition: border-color 0.15s, background 0.15s;
+  border: 1px solid rgba(223, 63, 131, 0.15);
+  border-radius: 8px;
+  padding: 5px;
+  background: #fff1f7;
+  transition: transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 150ms cubic-bezier(0.2, 0.8, 0.2, 1), background 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .cb-promotion-piece:hover {
-  border-color: #81b64c;
-  background: #3a3632;
+  border-color: rgba(190, 39, 104, 0.44);
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(190, 39, 104, 0.18);
+  transform: translateY(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-highlight-legal::after {
+    animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .cb-promotion-piece {
+    width: 54px;
+    height: 54px;
+  }
 }
