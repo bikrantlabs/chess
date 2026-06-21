@@ -1,6 +1,6 @@
 # Chess Project — Phase-Wise Build Plan
 
-NOTE: THE UI design (image) is placed under design/ folder.
+NOTE: The 'AI Engine(UCI Compatible) is placed under `engine/endgame` or `engine/endgame.exe` based on OS.
 
 ## Current State
 
