@@ -1116,6 +1116,26 @@ button {
   animation: pulse 1s ease-in-out infinite;
 }
 
+.board-frame {
+  position: relative;
+}
+
+.board-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: none;
+  cursor: default;
+}
+
+.board-disabled .board-overlay {
+  display: block;
+}
+
+.board-disabled .board-frame {
+  opacity: 0.5;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }

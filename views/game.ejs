@@ -187,6 +187,9 @@
     </main>
     <script src="/js/chessboard.js"></script>
     <script src="/js/game-ui.js"></script>
+    <script>
+      window.__INIT_STATE__ = <%- JSON.stringify(initState) %>;
+    </script>
     <script src="/js/board-controller.js"></script>
   </body>
 </html>

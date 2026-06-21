@@ -1,10 +1,14 @@
 let board = null;
 let isProcessingMove = false;
 let gameOver = false;
+let gameStarted = false;
 let gameMode = "ai";
 let playerColor = "w";
+let currentTurn = "w";
 
 function showSetupPanel() {
+  gameStarted = false;
+  document.body.classList.add("board-disabled");
   document.getElementById("setup-panel")?.style.removeProperty("display");
   document.getElementById("game-panels")?.style.setProperty("display", "none");
   document.getElementById("resign-btn")?.setAttribute("disabled", "true");
@@ -52,13 +56,28 @@ function setupButtonGroups() {
 }
 
 async function initBoard() {
+  const initState = window.__INIT_STATE__ || null;
+
+  if (initState) {
+    gameStarted = true;
+    gameMode = initState.mode;
+    playerColor = initState.playerColor || "w";
+    currentTurn = initState.turn;
+    gameOver = initState.gameOver || false;
+    document.body.classList.remove("board-disabled");
+    document.getElementById("resign-btn")?.removeAttribute("disabled");
+    document.getElementById("draw-btn")?.removeAttribute("disabled");
+    showGamePanels();
+  }
+
   board = new Chessboard("board", {
     draggable: true,
-    position: "start",
+    position: initState ? initState.fen : "start",
     showNotation: true,
 
-    onSelectPiece: async (square) => {
-      if (isProcessingMove || gameOver) return;
+    onSelectPiece: async (square, piece) => {
+      if (!gameStarted || isProcessingMove || gameOver) return;
+      if (piece && piece[0] !== currentTurn) return;
       board.clearHighlights();
       board.highlight([square], "cb-highlight-selected");
       try {
@@ -77,16 +96,21 @@ async function initBoard() {
       }
     },
 
-    onDragStart: () => {
-      if (isProcessingMove || gameOver) return false;
+    onDragStart: (source, piece) => {
+      if (!gameStarted || isProcessingMove || gameOver) return false;
+      if (piece && piece[0] !== currentTurn) return false;
       isProcessingMove = true;
     },
 
     onDrop: async (source, target, piece) => {
       board.clearHighlights();
+      if (!piece || piece[0] !== currentTurn) {
+        isProcessingMove = false;
+        return "snapback";
+      }
       const isPromotion =
-        (piece === "wP" && target[1] === "8") ||
-        (piece === "bP" && target[1] === "1");
+        (piece === "wP" && target[1] === "8" && source[1] === "7") ||
+        (piece === "bP" && target[1] === "1" && source[1] === "2");
       let promotion;
       if (isPromotion) promotion = await board.showPromotionDialog(piece[0]);
 
@@ -128,6 +152,20 @@ async function initBoard() {
   document.getElementById("new-game-btn")?.addEventListener("click", showSetupPanel);
   document.getElementById("resign-btn")?.addEventListener("click", onResign);
   document.getElementById("draw-btn")?.addEventListener("click", onDrawOffer);
+
+  if (initState) {
+    GameUI.renderMoveHistory(initState.history || []);
+    GameUI.updateStatus(initState);
+    GameUI.renderMaterialDiff(initState.materialDiff ?? 0);
+    if (initState.gameOver) {
+      GameUI.showGameOver(initState);
+    } else if (initState.mode === "ai" && initState.playerColor !== initState.turn) {
+      setTimeout(() => triggerAiMove(), 500);
+    }
+  } else {
+    document.body.classList.add("board-disabled");
+  }
+
   window.addEventListener("resize", () => board.resize());
 }
 
@@ -144,8 +182,11 @@ window.startNewGame = async (mode, color, timeControl) => {
   }
   gameOver = false;
   isProcessingMove = false;
+  gameStarted = true;
+  document.body.classList.remove("board-disabled");
   gameMode = mode;
   playerColor = color === "random" ? data.turn : color;
+  currentTurn = data.turn;
   SoundFX.play("open");
   board.position(data.fen);
   document.getElementById("resign-btn")?.removeAttribute("disabled");
@@ -170,6 +211,7 @@ function applyPlayerMove(data, source, target) {
   GameUI.updateStatus(data);
   GameUI.renderClocks(data.clocks);
   GameUI.renderMaterialDiff(data.materialDiff ?? 0);
+  currentTurn = data.turn;
 
   if (data.gameOver) {
     gameOver = true;
@@ -195,6 +237,7 @@ async function triggerAiMove() {
       GameUI.updateStatus(moveData);
       GameUI.renderClocks(moveData.clocks);
       GameUI.renderMaterialDiff(moveData.materialDiff ?? 0);
+      currentTurn = moveData.turn;
       if (moveData.gameOver) {
         gameOver = true;
         GameUI.showGameOver(moveData);
