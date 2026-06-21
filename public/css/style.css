@@ -1109,3 +1109,14 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.status-thinking {
+  color: #4a6fa5;
+  font-weight: 600;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

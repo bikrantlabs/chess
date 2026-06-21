@@ -15,31 +15,36 @@ export async function move(req: Request, res: Response) {
   const { from, to, promotion } = req.body;
 
   if (!from || !to) {
-    res.json({ ok: false, error: "from and to required" });
+    const engineMove = await game.doEngineMove();
+    if (!engineMove) {
+      res.json({ ok: false, error: "AI engine move failed" });
+      return;
+    }
+    const status = game.getStatus();
+    res.json({
+      ok: true,
+      engineMove,
+      fen: status.fen,
+      gameOver: status.gameOver,
+      turn: status.turn,
+      inCheck: status.inCheck,
+      inCheckmate: status.inCheckmate,
+      inStalemate: status.inStalemate,
+      materialDiff: status.materialDiff,
+      result: status.result,
+      gameOverReason: status.gameOverReason,
+      history: status.history,
+    });
     return;
   }
 
-  const moveResult = await game.applyMove(from, to, promotion ?? "q");
-  if (!moveResult) {
+  const result = await game.playerMove(from, to, promotion ?? "q");
+  if (!result) {
     res.json({ ok: false, error: "illegal move" });
     return;
   }
 
-  const status = game.getStatus();
-  res.json({
-    ok: true,
-    move: moveResult,
-    fen: status.fen,
-    gameOver: status.gameOver,
-    turn: status.turn,
-    inCheck: status.inCheck,
-    inCheckmate: status.inCheckmate,
-    inStalemate: status.inStalemate,
-    materialDiff: status.materialDiff,
-    result: status.result,
-    gameOverReason: status.gameOverReason,
-    history: status.history,
-  });
+  res.json({ ok: true, ...result });
 }
 
 export function resign(req: Request, res: Response) {
