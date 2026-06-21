@@ -16,9 +16,11 @@ export class EngineService {
   private messageCallback: ((line: string) => void) | null = null;
   private ready: Promise<void>;
 
-  constructor(private enginePath: string = "./engine/stockfish") {
+  constructor(private enginePath: string = "../engine/endgame.exe") {
     this.ready = new Promise<void>((resolve, reject) => {
-      this.process = spawn(this.enginePath, [], { stdio: ["pipe", "pipe", "pipe"] });
+      this.process = spawn(this.enginePath, [], {
+        stdio: ["pipe", "pipe", "pipe"],
+      });
 
       let handshake = 0;
       this.process.stdout!.on("data", (data: Buffer) => {
@@ -70,19 +72,21 @@ export class EngineService {
 
   go(depth: number, timeoutMs = 30000): Promise<string> {
     return this.enqueue(`go depth ${depth}`, "bestmove", timeoutMs).then(
-      (line) => line.split(" ")[1] ?? ""
+      (line) => line.split(" ")[1] ?? "",
     );
   }
 
   goTime(ms: number, timeoutMs = 60000): Promise<string> {
     return this.enqueue(`go movetime ${ms}`, "bestmove", timeoutMs).then(
-      (line) => line.split(" ")[1] ?? ""
+      (line) => line.split(" ")[1] ?? "",
     );
   }
 
   async eval(timeoutMs = 5000): Promise<number> {
     const line = await this.enqueue("eval", "Total evaluation", timeoutMs);
-    const match = line.match(/(?:Total evaluation|Final evaluation):?\s*(-?\d+\.?\d*)/);
+    const match = line.match(
+      /(?:Total evaluation|Final evaluation):?\s*(-?\d+\.?\d*)/,
+    );
     return match ? parseFloat(match[1] as string) : 0;
   }
 
@@ -105,7 +109,11 @@ export class EngineService {
     this.process?.stdin?.write(cmd + "\n");
   }
 
-  private enqueue(command: string, marker: string, timeoutMs?: number): Promise<string> {
+  private enqueue(
+    command: string,
+    marker: string,
+    timeoutMs?: number,
+  ): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const item: QueueItem = { command, resolve, reject, marker };
       if (timeoutMs) {
