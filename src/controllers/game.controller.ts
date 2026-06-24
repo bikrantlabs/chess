@@ -1,81 +1,70 @@
 import { Request, Response } from "express";
 import { GameService } from "../services/game.service.js";
 
-const game = new GameService();
+const gameService = new GameService();
 
-export function newGame(req: Request, res: Response) {
-  const mode = req.body.mode ?? "ai";
-  const color = req.body.color ?? "w";
-  const result = game.newGame(mode, color);
-  const status = game.getStatus();
-  res.json({ ok: true, ...result, ...status });
+export async function newGame(req: Request, res: Response) {
+  try {
+    const mode = req.body.mode ?? "ai";
+    const color = req.body.color ?? "w";
+    const timeControl = req.body.timeControl ?? undefined;
+    const result = await gameService.newGame(mode, color, timeControl);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error("Failed to create game:", err);
+    res.json({ ok: false, error: "Failed to create game" });
+  }
 }
 
-export async function move(req: Request, res: Response) {
-  const { from, to, promotion } = req.body;
-
-  if (!from || !to) {
-    const engineMove = await game.doEngineMove();
-    if (!engineMove) {
-      res.json({ ok: false, error: "AI engine move failed" });
-      return;
-    }
-    const status = game.getStatus();
-    res.json({
-      ok: true,
-      engineMove,
-      fen: status.fen,
-      gameOver: status.gameOver,
-      turn: status.turn,
-      inCheck: status.inCheck,
-      inCheckmate: status.inCheckmate,
-      inStalemate: status.inStalemate,
-      materialDiff: status.materialDiff,
-      result: status.result,
-      gameOverReason: status.gameOverReason,
-      history: status.history,
-    });
+export async function aiMove(req: Request, res: Response) {
+  const { fen } = req.body;
+  if (!fen) {
+    res.json({ ok: false, error: "FEN is required" });
     return;
   }
-
-  const result = await game.playerMove(from, to, promotion ?? "q");
+  const result = await gameService.requestAIMove(fen);
   if (!result) {
-    res.json({ ok: false, error: "illegal move" });
+    res.json({ ok: false, error: "AI engine move failed" });
     return;
   }
-
   res.json({ ok: true, ...result });
 }
 
-export function resign(req: Request, res: Response) {
-  const turn = game.getTurn();
-  const result = game.resign(turn);
-  res.json({ ok: true, ...result, gameOver: true });
+export async function saveGame(req: Request, res: Response) {
+  try {
+    const { gameId, fen, pgn, result, status } = req.body;
+    if (!gameId) {
+      res.json({ ok: false, error: "gameId is required" });
+      return;
+    }
+    await gameService.saveGame(gameId, { fen, pgn, result, status });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Failed to save game:", err);
+    res.json({ ok: false, error: "Failed to save game" });
+  }
 }
 
-export function draw(req: Request, res: Response) {
-  const result = game.offerDraw();
-  res.json({ ok: true, ...result, gameOver: true });
-}
-
-export function status(req: Request, res: Response) {
-  res.json({ ok: true, ...game.getStatus() });
-}
-
-export function legalMoves(req: Request, res: Response) {
-  const { square, fen } = req.body;
-  if (fen) game.loadFen(fen);
-  const moves = game.getLegalMoves(square);
-  res.json({
-    moves: moves.map((m) => m.to),
-    captures: moves.filter((m) => m.captured).map((m) => m.to),
-  });
-}
-
-export function position(req: Request, res: Response) {
-  res.json({ fen: game.getFen() });
-}
-
-export function getGameInstance() {
-  return game;
+export async function loadGame(req: Request, res: Response) {
+  try {
+    const idStr = req.params.id;
+    if (!idStr || Array.isArray(idStr)) {
+      res.json({ ok: false, error: "Invalid game ID" });
+      return;
+    }
+    const gameId = parseInt(idStr);
+    if (isNaN(gameId)) {
+      res.json({ ok: false, error: "Invalid game ID" });
+      return;
+    }
+    const game = await gameService.loadGame(gameId);
+    if (!game) {
+      res.json({ ok: false, error: "Game not found" });
+      return;
+    }
+    res.json({ ok: true, game });
+  } catch (err) {
+    console.error("Failed to load game:", err);
+    res.json({ ok: false, error: "Failed to load game" });
+  }
 }

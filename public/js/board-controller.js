@@ -1,10 +1,29 @@
 let board = null;
+let gameState = null;
 let isProcessingMove = false;
 let gameOver = false;
 let gameStarted = false;
 let gameMode = "ai";
 let playerColor = "w";
 let currentTurn = "w";
+let moveTimeoutId = null;
+
+function resetMoveLock() {
+  isProcessingMove = false;
+  if (moveTimeoutId) {
+    clearTimeout(moveTimeoutId);
+    moveTimeoutId = null;
+  }
+}
+
+function setMoveLock() {
+  isProcessingMove = true;
+  if (moveTimeoutId) clearTimeout(moveTimeoutId);
+  moveTimeoutId = setTimeout(() => {
+    isProcessingMove = false;
+    moveTimeoutId = null;
+  }, 30000);
+}
 
 function showSetupPanel() {
   gameStarted = false;
@@ -25,60 +44,64 @@ function setupButtonGroups() {
     group.addEventListener("click", (e) => {
       const btn = e.target.closest(".group-btn");
       if (!btn) return;
-      group.querySelectorAll(".group-btn").forEach((b) => b.classList.remove("active"));
+      group
+        .querySelectorAll(".group-btn")
+        .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       if (group.id === "pg-mode") {
         const section = document.getElementById("pg-color-section");
-        if (section) section.style.display = btn.dataset.value === "ai" ? "" : "none";
+        if (section)
+          section.style.display = btn.dataset.value === "ai" ? "" : "none";
       }
     });
   });
 
   document.querySelectorAll(".time-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".time-btn").forEach((b) => b.classList.remove("active"));
+      document
+        .querySelectorAll(".time-btn")
+        .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       const wrap = document.getElementById("pg-custom-wrap");
-      if (wrap) wrap.style.display = btn.dataset.value === "custom" ? "" : "none";
+      if (wrap)
+        wrap.style.display = btn.dataset.value === "custom" ? "" : "none";
     });
   });
 
   document.getElementById("pg-start")?.addEventListener("click", async () => {
-    const mode = document.querySelector("#pg-mode .group-btn.active")?.dataset.value ?? "ai";
-    const color = document.querySelector("#pg-color .group-btn.active")?.dataset.value ?? "w";
-    let timeControl = document.querySelector("#pg-time .time-btn.active")?.dataset.value ?? "";
+    const mode =
+      document.querySelector("#pg-mode .group-btn.active")?.dataset.value ??
+      "ai";
+    const color =
+      document.querySelector("#pg-color .group-btn.active")?.dataset.value ??
+      "w";
+    let timeControl =
+      document.querySelector("#pg-time .time-btn.active")?.dataset.value ?? "";
     if (timeControl === "custom") {
       timeControl = document.getElementById("pg-custom-time")?.value ?? "600+5";
     }
     showGamePanels();
-    if (window.startNewGame) await window.startNewGame(mode, color, timeControl);
+    if (window.startNewGame)
+      await window.startNewGame(mode, color, timeControl);
   });
 }
 
 async function initBoard() {
+  gameState = new GameState();
+
   board = new Chessboard("board", {
     draggable: true,
     position: "start",
     showNotation: true,
 
-    onSelectPiece: async (square, piece) => {
+    onSelectPiece: (square, piece) => {
       if (!gameStarted || isProcessingMove || gameOver) return;
       if (piece && piece[0] !== currentTurn) return;
       board.clearHighlights();
       board.highlight([square], "cb-highlight-selected");
-      try {
-        const res = await fetch("/api/legal-moves", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ square }),
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.moves && data.moves.length > 0) {
-          board.highlightLegal(data.moves, data.captures);
-        }
-      } catch (err) {
-        console.error("Failed to fetch legal moves:", err);
+      const { moves, captures } = gameState.getLegalMoveTargets(square);
+      if (moves.length > 0) {
+        board.highlightLegal(moves, captures);
       }
     },
 
@@ -89,36 +112,34 @@ async function initBoard() {
     },
 
     onDrop: async (source, target, piece) => {
-      board.clearHighlights();
-      if (!piece || piece[0] !== currentTurn) {
-        isProcessingMove = false;
-        return "snapback";
-      }
-      const isPromotion =
-        (piece === "wP" && target[1] === "8" && source[1] === "7") ||
-        (piece === "bP" && target[1] === "1" && source[1] === "2");
-      let promotion;
-      if (isPromotion) promotion = await board.showPromotionDialog(piece[0]);
-
       try {
-        const res = await fetch("/api/move", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from: source, to: target, promotion: promotion || "q" }),
-        });
-        const data = await res.json();
-        if (!data.ok) {
+        board.clearHighlights();
+        if (!piece || piece[0] !== currentTurn) {
           isProcessingMove = false;
           return "snapback";
         }
-        applyPlayerMove(data, source, target);
+        const isPromotion =
+          (piece === "wP" && target[1] === "8" && source[1] === "7") ||
+          (piece === "bP" && target[1] === "1" && source[1] === "2");
+        let promotion;
+        if (isPromotion) promotion = await board.showPromotionDialog(piece[0]);
+
+        const moveResult = gameState.makeMove(source, target, promotion);
+        if (!moveResult) {
+          isProcessingMove = false;
+          return "snapback";
+        }
+
+        applyPlayerMove(moveResult, source, target);
+        console.log("Player Move Applied");
+        console.log({ gameOver, gameMode });
         if (!gameOver && gameMode === "ai") {
+          console.log("Triggering AI Move");
           await triggerAiMove();
         }
       } catch (err) {
-        console.error("Move failed:", err);
-        isProcessingMove = false;
-        return "snapback";
+        console.error("onDrop error:", err);
+        resetMoveLock();
       }
     },
 
@@ -126,6 +147,7 @@ async function initBoard() {
       board.clearHighlights();
       isProcessingMove = false;
     },
+
     onSnapEnd: () => {
       board.clearHighlights();
       isProcessingMove = false;
@@ -133,9 +155,11 @@ async function initBoard() {
   });
   window.board = board;
 
-  GameUI.init();
+  window.GameUI.init();
   setupButtonGroups();
-  document.getElementById("new-game-btn")?.addEventListener("click", showSetupPanel);
+  document
+    .getElementById("new-game-btn")
+    ?.addEventListener("click", showSetupPanel);
   document.getElementById("resign-btn")?.addEventListener("click", onResign);
   document.getElementById("draw-btn")?.addEventListener("click", onDrawOffer);
 
@@ -145,106 +169,113 @@ async function initBoard() {
 }
 
 window.startNewGame = async (mode, color, timeControl) => {
-  const res = await fetch("/api/new-game", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode, color, timeControl: timeControl || undefined }),
-  });
-  const data = await res.json();
-  if (!data.ok) {
-    showSetupPanel();
-    return;
+  try {
+    await window.GamePersistence.createGame(mode, color, timeControl);
+  } catch (err) {
+    console.error("Failed to create game in DB:", err);
   }
+
+  const initial = gameState.newGame(mode, color);
   gameOver = false;
-  isProcessingMove = false;
+  resetMoveLock();
   gameStarted = true;
   document.body.classList.remove("board-disabled");
   gameMode = mode;
-  playerColor = color === "random" ? data.turn : color;
-  currentTurn = data.turn;
-  SoundFX.play("open");
-  board.position(data.fen);
+  playerColor = gameState.playerColor;
+  currentTurn = initial.turn;
+  window.SoundFX.play("open");
+  board.position(initial.fen);
   document.getElementById("resign-btn")?.removeAttribute("disabled");
   document.getElementById("draw-btn")?.removeAttribute("disabled");
-  GameUI.moveList = [];
-  GameUI.renderMoveHistory([]);
-  GameUI.updateStatus(data);
-  GameUI.renderClocks(data.clocks);
-  GameUI.renderMaterialDiff(data.materialDiff ?? 0);
+  window.GameUI.moveList = [];
+  window.GameUI.renderMoveHistory([]);
+  window.GameUI.updateStatus(gameState.getStatus());
+  window.GameUI.renderClocks({ white: 0, black: 0 });
+  window.GameUI.renderMaterialDiff(0);
 
-  if (mode === "ai" && playerColor !== data.turn) {
+  if (mode === "ai" && playerColor !== initial.turn) {
     await triggerAiMove();
   }
 };
 
-function applyPlayerMove(data, source, target) {
-  if (data.move) {
-    GameUI.appendMove({ ...data.move, after: data.fen });
-  }
-  board.position(data.fen);
+function applyPlayerMove(move, source, target) {
+  const status = gameState.getStatus();
+  window.GameUI.appendMove({ ...move, after: status.fen });
+  board.position(status.fen);
   board.highlightLastMove(source, target);
-  GameUI.updateStatus(data);
-  GameUI.renderClocks(data.clocks);
-  GameUI.renderMaterialDiff(data.materialDiff ?? 0);
-  currentTurn = data.turn;
+  window.GameUI.updateStatus(status);
+  currentTurn = status.turn;
 
-  if (data.gameOver) {
+  if (status.gameOver) {
     gameOver = true;
-    GameUI.showGameOver(data);
+    window.GameUI.showGameOver(status);
   }
   isProcessingMove = false;
 }
 
 async function triggerAiMove() {
-  isProcessingMove = true;
-  GameUI.showThinking();
+  setMoveLock();
+  window.GameUI.showThinking();
   try {
-    const moveRes = await fetch("/api/move", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    const moveData = await moveRes.json();
-    if (moveData.ok && moveData.engineMove) {
-      board.position(moveData.fen);
-      board.highlightLastMove(moveData.engineMove.from, moveData.engineMove.to);
-      GameUI.appendMove({ ...moveData.engineMove, after: moveData.fen });
-      GameUI.updateStatus(moveData);
-      GameUI.renderClocks(moveData.clocks);
-      GameUI.renderMaterialDiff(moveData.materialDiff ?? 0);
-      currentTurn = moveData.turn;
-      if (moveData.gameOver) {
+    const result = await window.AIService.requestMove(gameState.getFen());
+    if (!result.ok || !result.from) {
+      resetMoveLock();
+      window.GameUI.hideThinking();
+      console.error("AI move response not OK:", result);
+      return;
+    }
+    const moveResult = gameState.makeMove(
+      result.from,
+      result.to,
+      result.promotion,
+    );
+    if (moveResult) {
+      const status = gameState.getStatus();
+      board.position(status.fen);
+      board.highlightLastMove(result.from, result.to);
+      window.GameUI.appendMove({ ...moveResult, after: status.fen });
+      window.GameUI.updateStatus(status);
+      currentTurn = status.turn;
+      if (status.gameOver) {
         gameOver = true;
-        GameUI.showGameOver(moveData);
+        window.GameUI.showGameOver(status);
       }
     }
   } catch (err) {
     console.error("AI move failed:", err);
   }
-  GameUI.hideThinking();
-  isProcessingMove = false;
+  window.GameUI.hideThinking();
+  resetMoveLock();
 }
 
-async function onResign() {
-  const ok = await GameUI.showConfirmDialog("Are you sure you want to resign?");
-  if (!ok) return;
-  const res = await fetch("/api/resign", { method: "POST" });
-  const data = await res.json();
-  if (data.ok) {
-    gameOver = true;
-    GameUI.showGameOver({ result: data.result, gameOver: true, gameOverReason: "resignation" });
-  }
+function onResign() {
+  window.GameUI.showConfirmDialog("Are you sure you want to resign?").then(
+    (ok) => {
+      if (!ok) return;
+      const result = gameState.resign(currentTurn);
+      gameOver = true;
+      window.GameUI.showGameOver({
+        result: result.result,
+        gameOver: true,
+        gameOverReason: result.reason,
+      });
+    },
+  );
 }
 
-async function onDrawOffer() {
-  const ok = await GameUI.showConfirmDialog("Are you sure you want to offer a draw?");
-  if (!ok) return;
-  const res = await fetch("/api/draw", { method: "POST" });
-  const data = await res.json();
-  if (data.ok) {
+function onDrawOffer() {
+  window.GameUI.showConfirmDialog(
+    "Are you sure you want to offer a draw?",
+  ).then((ok) => {
+    if (!ok) return;
+    const result = gameState.offerDraw();
     gameOver = true;
-    GameUI.showGameOver({ result: data.result, gameOver: true, gameOverReason: "draw-agreement" });
-  }
+    window.GameUI.showGameOver({
+      result: result.result,
+      gameOver: true,
+      gameOverReason: result.reason,
+    });
+  });
 }
 
 document.addEventListener("DOMContentLoaded", initBoard);

@@ -26,11 +26,10 @@ app.use("/", appRouter);
 app.use("/", apiRouter);
 app.use("/", authRouter);
 
-io.on("connection", (socket) => {
-  socket.on("move", (data) => {});
-  socket.on("get-legal-moves", (data) => {});
+io.on("connection", (_socket) => {
+  // Future: online PvP via socket.io
 });
 
 httpServer.listen(3000, () =>
-  console.log("App listening on port: " + `http://localhost:${3000}`),
+  console.log("App listening on: " + `http://localhost:${3000}`),
 );

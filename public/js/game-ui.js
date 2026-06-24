@@ -1,4 +1,4 @@
-const SoundFX = {
+window.SoundFX = {
   enabled: true,
   context: null,
 
@@ -60,7 +60,7 @@ const SoundFX = {
   },
 };
 
-const GameUI = {
+window.GameUI = {
   moveList: [],
   viewedMove: -1,
 

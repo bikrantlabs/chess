@@ -1,23 +1,17 @@
 import { Router, json } from "express";
 import {
   newGame,
-  move,
-  resign,
-  draw,
-  status,
-  legalMoves,
-  position,
+  aiMove,
+  saveGame,
+  loadGame,
 } from "../controllers/game.controller.js";
 
 const router = Router();
 router.use(json());
 
 router.post("/api/new-game", newGame);
-router.post("/api/move", move);
-router.post("/api/resign", resign);
-router.post("/api/draw", draw);
-router.get("/api/status", status);
-router.post("/api/legal-moves", legalMoves);
-router.get("/api/position", position);
+router.post("/api/ai-move", aiMove);
+router.post("/api/games/save", saveGame);
+router.get("/api/games/:id", loadGame);
 
 export default router;
